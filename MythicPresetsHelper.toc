@@ -1,0 +1,54 @@
+## Interface: 120100
+## Title: MythicPresets Helper
+## Version: 0.1.0
+## IconTexture: 525134
+## Author: Pych
+## SavedVariables: MythicPresetsHelperDB
+## OptionalDeps: PremadeGroupsFilter
+## X-Website: https://github.com/do-step/mythicpresets-helper
+## X-Curse-Project-ID: 1684487
+## X-License: MIT
+
+## Notes: Mythic+ group search presets built from your own progress. Unofficial companion to Premade Groups Filter.
+## Notes-ruRU: Пресеты поиска групп M+ из вашего прогресса. Неофициальное дополнение к Premade Groups Filter.
+## Notes-deDE: Voreinstellungen für die Gruppensuche aus Eurem Mythisch+-Fortschritt. Inoffizielle Ergänzung zu Premade Groups Filter.
+## Notes-frFR: Préréglages de recherche de groupe M+ basés sur votre progression. Complément non officiel à Premade Groups Filter.
+## Notes-esES: Preajustes de búsqueda de grupos M+ a partir de tu progreso. Complemento no oficial de Premade Groups Filter.
+## Notes-esMX: Preajustes de búsqueda de grupos M+ a partir de tu progreso. Complemento no oficial de Premade Groups Filter.
+## Notes-itIT: Preset per la ricerca gruppi M+ basati sui tuoi progressi. Aggiunta non ufficiale a Premade Groups Filter.
+## Notes-ptBR: Predefinições de busca de grupos M+ a partir do seu progresso. Complemento não oficial ao Premade Groups Filter.
+## Notes-koKR: 내 진행도로 만드는 쐐기돌 파티 찾기 프리셋. Premade Groups Filter의 비공식 보조 애드온.
+## Notes-zhCN: 根据你的进度生成的大秘境组队搜索预设。Premade Groups Filter 的非官方辅助插件。
+## Notes-zhTW: 根據你的進度產生的大秘境組隊搜尋預設。Premade Groups Filter 的非官方輔助插件。
+
+## Category-enUS: Dungeons & Raids
+## Category-ruRU: Подземелья и рейды
+## Category-deDE: Dungeons & Schlachtzüge
+## Category-frFR: Donjons et raids
+## Category-esES: Mazmorras y bandas
+## Category-esMX: Calabozos y bandas
+## Category-itIT: Spedizioni e incursioni
+## Category-ptBR: Masmorras e Raides
+## Category-koKR: 던전 및 공격대
+## Category-zhCN: 地下城和团队副本
+## Category-zhTW: 地城與團隊
+
+Core.lua
+Localization\enUS.lua
+Localization\deDE.lua
+Localization\esES.lua
+Localization\esMX.lua
+Localization\frFR.lua
+Localization\itIT.lua
+Localization\koKR.lua
+Localization\ptBR.lua
+Localization\ruRU.lua
+Localization\zhCN.lua
+Localization\zhTW.lua
+Dungeons.lua
+Presets.lua
+Progress.lua
+Raids.lua
+UI\CopyBox.lua
+UI\PresetList.lua
+UI\PresetEdit.lua

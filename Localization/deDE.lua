@@ -1,0 +1,76 @@
+if GetLocale() ~= "deDE" then return end
+
+local ADDON, MPH = ...
+local L = MPH.L
+
+L["window.title"]       = "MythicPresets Helper"
+L["window.empty"]       = "Noch keine Voreinstellungen.\nDrückt |cffffd100Neu|r, um eine zu erstellen."
+
+L["button.new"]         = "Neu"
+L["button.resetfilter"] = "Zurücksetzen"
+L["button.save"]        = "Speichern"
+L["button.cancel"]      = "Abbrechen"
+L["button.all"]         = "Alle"
+L["button.none"]        = "Keine"
+
+L["edit.titlenew"]      = "Neue Voreinstellung"
+L["edit.titleedit"]     = "Voreinstellung bearbeiten"
+L["edit.name"]          = "Name"
+L["edit.keylevel"]      = "Schlüsselsteinstufe"
+L["edit.keylevelhint"]  = "Nur zur Erinnerung - Addons dürfen nicht in das Suchfeld von Blizzard schreiben"
+L["edit.dungeons"]      = "Dungeons"
+
+L["kind.auto"]          = "automatisch"
+L["kind.manual"]        = "manuell"
+
+L["tooltip.place"]      = "Neu ausrichten"
+L["tooltip.placedesc"]  = "Ermittelt den Platz neben der Gruppensuche und heftet das Fenster dorthin."
+L["copy.ahead"]         = "Stufen darüber"
+L["copy.aheaddesc"]     = "Wie viele Stufen über der Voreinstellung im Suchtext stehen sollen. 0 sucht genau diese Stufe."
+L["copy.titleraid"]     = "Schlachtzugsname"
+L["copy.title"]         = "Schlüsselsteinstufe"
+L["copy.hint"]          = "Strg+C, dann in das Suchfeld einfügen"
+L["help.toggle"]        = "Fenster mit den Voreinstellungen ein- oder ausblenden"
+L["help.probe"]         = "Diagnose der Gruppensuche"
+L["help.offset"]        = "Fenster weiter nach rechts schieben"
+L["help.reset"]         = "Fensterposition neu berechnen"
+
+L["info.title"]         = "Bedienung"
+L["info.step1"]         = "1. Klickt eine Voreinstellung an. Die Dungeons werden für Euch gesetzt."
+L["info.step2"]         = "2. Für eine andere Schlüsselsteinstufe erscheint ein kleines Fenster mit fertigem Text. Kopiert ihn mit Strg+C und fügt ihn mit Strg+V in das Suchfeld ein."
+L["info.keep"]          = "Wollt Ihr eine Voreinstellung behalten, ändert sie. Am einfachsten ist Umbenennen. Sie wird dadurch manuell und das Addon aktualisiert sie nicht mehr."
+L["info.note"]          = "Nur die Stufe tippt Ihr selbst: Blizzard erlaubt Addons nicht, in das Suchfeld zu schreiben."
+
+L["rating.label"]       = "Wertung +/-"
+L["rating.tooltip"]     = "Trägt beim Anwenden einer Voreinstellung den M+-Wertungsbereich um Eure eigene Wertung in PGF ein."
+L["rating.current"]     = "Eure Wertung: %d. PGF erhält %d - %d."
+L["rating.noscore"]     = "Eure Wertung ist noch nicht verfügbar."
+
+L["summary.raid"]       = "ab %d Spielern, höchstens %d in %s"
+L["armor.plate"]        = "Platte"
+L["armor.mail"]         = "Kette"
+L["armor.leather"]      = "Leder"
+L["armor.cloth"]        = "Stoff"
+L["armor.unknown"]      = "Eurer Rüstung"
+L["summary.nokey"]      = "beliebiger Schlüsselstein"
+L["summary.alldungeon"] = "alle Dungeons"
+L["summary.dungeons"]   = "%d Dungeons"
+
+L["tooltip.auto"]       = "Aus Eurem Fortschritt erstellt, wird automatisch aktualisiert."
+L["tooltip.manual"]     = "Von Hand erstellt, das Addon rührt sie nicht an."
+L["tooltip.resetfilter"] = "Hebt die angewendete Voreinstellung auf und öffnet die Suche wieder für alle Dungeons. Es wird nichts gelöscht."
+L["tooltip.apply"]      = "Anklicken, um diese Voreinstellung anzuwenden und zu suchen."
+L["tooltip.edit"]       = "Bearbeiten"
+L["tooltip.delete"]     = "Löschen (Umschalt halten)"
+
+L["msg.becamemanual"]   = "#%s ist jetzt manuell"
+L["msg.clearsearchbox"] = "Im Suchfeld steht noch %s"
+L["msg.notready"]       = "Noch nicht bereit."
+L["msg.positionreset"]  = "Position zurückgesetzt."
+L["msg.raidnoedit"]     = "Schlachtzugsvoreinstellungen werden erzeugt, nicht bearbeitet."
+L["msg.needname"]       = "Name erforderlich."
+L["msg.needdungeon"]    = "Wählt mindestens einen Dungeon."
+L["msg.nopanel"]        = "Öffnet zuerst die Gruppensuche."
+L["msg.typekey"]        = "Gebt %s in das Suchfeld ein."
+L["msg.pgfconflict"]    = "In PGF sind ebenfalls Dungeons angehakt - die Filter kombinieren sich."
+L["msg.nodungeondata"]  = "Daten noch nicht geladen."
