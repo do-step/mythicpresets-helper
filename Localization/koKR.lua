@@ -28,6 +28,7 @@ L["copy.title"]          = "쐐기돌 단계"
 L["copy.hint"]           = "Ctrl+C 후 검색창에 붙여넣기"
 L["help.toggle"]         = "프리셋 창 열기 또는 닫기"
 L["help.probe"]          = "파티 찾기 진단"
+L["help.debug"]          = "단계별 로그 켜기 또는 끄기"
 L["help.offset"]         = "창을 오른쪽으로 더 밀기"
 L["help.reset"]          = "창 위치 다시 계산"
 L["info.title"]          = "사용 방법"
@@ -54,6 +55,10 @@ L["tooltip.resetfilter"] = "적용된 프리셋을 해제하고 모든 던전으
 L["tooltip.apply"]       = "눌러서 이 프리셋을 적용하고 검색합니다."
 L["tooltip.edit"]        = "편집"
 L["tooltip.delete"]      = "삭제 (Shift 누른 채로)"
+
+L["toggle.tooltip"]      = "프리셋 창을 열거나 닫습니다."
+L["toggle.pin"]          = "오른쪽 클릭하면 창을 파티 찾기 옆에 다시 고정합니다."
+
 L["msg.becamemanual"]    = "#%s 이(가) 수동으로 바뀌었습니다"
 L["msg.clearsearchbox"]  = "검색창에 아직 %s 이(가) 있습니다"
 L["msg.notready"]        = "아직 준비되지 않았습니다."

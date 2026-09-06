@@ -28,6 +28,7 @@ L["copy.title"]          = "鑰石等級"
 L["copy.hint"]           = "Ctrl+C，然後貼到搜尋框"
 L["help.toggle"]         = "顯示或隱藏預設視窗"
 L["help.probe"]          = "隊伍尋找器診斷"
+L["help.debug"]          = "開啟或關閉逐步日誌"
 L["help.offset"]         = "把視窗再往右移"
 L["help.reset"]          = "重新計算視窗位置"
 L["info.title"]          = "使用方法"
@@ -54,6 +55,10 @@ L["tooltip.resetfilter"] = "取消已套用的預設，把搜尋恢復到全部�
 L["tooltip.apply"]       = "點擊套用此預設並搜尋。"
 L["tooltip.edit"]        = "編輯"
 L["tooltip.delete"]      = "刪除（按住 Shift）"
+
+L["toggle.tooltip"]      = "顯示或隱藏預設視窗。"
+L["toggle.pin"]          = "右鍵點擊可將視窗重新固定到隊伍尋找器旁邊。"
+
 L["msg.becamemanual"]    = "#%s 現在是手動預設"
 L["msg.clearsearchbox"]  = "搜尋框裡還有 %s"
 L["msg.notready"]        = "還沒準備好。"

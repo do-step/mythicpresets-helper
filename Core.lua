@@ -17,6 +17,12 @@ local DB_DEFAULTS = {
         delta = 100,
     },
     keyAhead = 1,
+    debug = false,
+    lastScore = 0,
+    noted = {
+        season = 0,
+        runs = {},
+    },
     window = {
         shown = true,
         offset = 0,
@@ -29,6 +35,12 @@ local DB_DEFAULTS = {
 function MPH.Print(msg, ...)
     if select("#", ...) > 0 then msg = string.format(msg, ...) end
     DEFAULT_CHAT_FRAME:AddMessage(MPH.PREFIX .. tostring(msg))
+end
+
+function MPH.Debug(msg, ...)
+    if not MPH.db or not MPH.db.debug then return end
+    if select("#", ...) > 0 then msg = string.format(msg, ...) end
+    DEFAULT_CHAT_FRAME:AddMessage(MPH.PREFIX .. "|cff888888" .. tostring(msg) .. "|r")
 end
 
 function MPH.FillDefaults(target, defaults)
@@ -144,6 +156,10 @@ function MPH.Probe()
     MPH.Print("---- probe ----")
     MPH.Print("client build: %s / interface %s", (select(1, GetBuildInfo())), tostring(select(4, GetBuildInfo())))
     MPH.Print("PGF installed: %s", tostring(MPH.HasPGF()))
+    MPH.Print("toggle button: %s", MPH.DescribeToggleButton and MPH.DescribeToggleButton() or "module not loaded")
+    local pending, tries = MPH.Progress.GetPending()
+    MPH.Print("score: %d, last seen %s, pending rebuild %s (attempt %d)",
+        MPH.GetPlayerScore(), tostring(MPH.db.lastScore), tostring(pending), tries)
     MPH.Print("category: %s -> kind %s",
         tostring(MPH.GetSearchCategory()), tostring(MPH.GetActiveKind()))
     local counts = { mplus = 0, raid = 0 }
@@ -153,6 +169,42 @@ function MPH.Probe()
     end
     MPH.Print("presets: mplus %d, raid %d, armor %s",
         counts.mplus, counts.raid, tostring(MPH.GetPlayerArmor()))
+
+    local history = {}
+    local okRuns, runs = pcall(C_MythicPlus.GetRunHistory, true, true)
+    if okRuns and runs then
+        for _, run in ipairs(runs) do
+            local id = run.mapChallengeModeID
+            if id and run.level then
+                local entry = history[id] or { timed = 0, any = 0 }
+                if run.completed then entry.timed = math.max(entry.timed, run.level) end
+                entry.any = math.max(entry.any, run.level)
+                history[id] = entry
+            end
+        end
+    end
+
+    local summary = {}
+    for _, run in ipairs(MPH.GetRatingSummaryRuns() or {}) do
+        if run.challengeModeID then
+            summary[run.challengeModeID] = string.format("%s%s",
+                tostring(run.bestRunLevel), MPH.IsTimedRun(run) and "" or "*")
+        end
+    end
+
+    local recent = MPH.Progress.GetRecentTimed()
+    MPH.Print("dungeon best (season intime/overtime, history timed/any, summary, noted; * = not timed):")
+    for _, dungeon in ipairs(MPH.GetSeasonDungeons()) do
+        local okBest, intime, overtime = pcall(C_MythicPlus.GetSeasonBestForMap, dungeon.cmID)
+        local entry = history[dungeon.cmID]
+        MPH.Print("   %-4s %s: %s/%s, %d/%d, %s, %d",
+            dungeon.code, dungeon.name,
+            (okBest and intime) and tostring(intime.level) or "-",
+            (okBest and overtime) and tostring(overtime.level) or "-",
+            entry and entry.timed or 0, entry and entry.any or 0,
+            summary[dungeon.cmID] or "-",
+            recent[dungeon.cmID] or 0)
+    end
     MPH.Print("current raid: %s", tostring(MPH.Raids.GetCurrentRaidName()))
     for _, filters in ipairs({ 5, 1, 6, 2, 4, 0 }) do
         local ok, groups = pcall(C_LFGList.GetAvailableActivityGroups, MPH.CATEGORY_RAIDS, filters)
@@ -210,6 +262,7 @@ end
 local HELP_LINES = {
     { "/mph",            "help.toggle" },
     { "/mph probe",      "help.probe"  },
+    { "/mph debug",      "help.debug"  },
     { "/mph offset <n>", "help.offset" },
     { "/mph reset",      "help.reset"  },
 }
@@ -226,6 +279,9 @@ SlashCmdList["MYTHICPRESETSHELPER"] = function (msg)
     local cmd, rest = (msg or ""):lower():match("^%s*(%S*)%s*(.-)%s*$")
     if cmd == "probe" then
         MPH.Probe()
+    elseif cmd == "debug" then
+        MPH.db.debug = not MPH.db.debug
+        MPH.Print("debug: %s", tostring(MPH.db.debug))
     elseif cmd == "reset" then
         MPH.db.window.point = nil
         MPH.db.window.x = 0

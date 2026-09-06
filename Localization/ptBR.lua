@@ -28,6 +28,7 @@ L["copy.title"]          = "Nível da pedra angular"
 L["copy.hint"]           = "Ctrl+C e cole no campo de busca"
 L["help.toggle"]         = "mostrar ou ocultar a janela de predefinições"
 L["help.probe"]          = "diagnóstico do localizador de grupos"
+L["help.debug"]          = "ativar ou desativar o log passo a passo"
 L["help.offset"]         = "deslocar a janela mais para a direita"
 L["help.reset"]          = "recalcular a posição da janela"
 L["info.title"]          = "Como usar"
@@ -54,6 +55,10 @@ L["tooltip.resetfilter"] = "Remove a predefinição aplicada e reabre a busca pa
 L["tooltip.apply"]       = "Clique para aplicar esta predefinição e buscar."
 L["tooltip.edit"]        = "Editar"
 L["tooltip.delete"]      = "Excluir (segure Shift)"
+
+L["toggle.tooltip"]      = "Mostra ou oculta a janela de predefinições."
+L["toggle.pin"]          = "Clique direito fixa a janela de volta ao lado do localizador de grupos."
+
 L["msg.becamemanual"]    = "#%s agora é manual"
 L["msg.clearsearchbox"]  = "O campo de busca ainda tem %s"
 L["msg.notready"]        = "Ainda não está pronto."

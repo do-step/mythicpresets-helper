@@ -32,6 +32,7 @@ L["copy.title"]         = "Schlüsselsteinstufe"
 L["copy.hint"]          = "Strg+C, dann in das Suchfeld einfügen"
 L["help.toggle"]        = "Fenster mit den Voreinstellungen ein- oder ausblenden"
 L["help.probe"]         = "Diagnose der Gruppensuche"
+L["help.debug"]         = "Schrittweise Protokollierung ein- oder ausschalten"
 L["help.offset"]        = "Fenster weiter nach rechts schieben"
 L["help.reset"]         = "Fensterposition neu berechnen"
 
@@ -62,6 +63,9 @@ L["tooltip.resetfilter"] = "Hebt die angewendete Voreinstellung auf und öffnet 
 L["tooltip.apply"]      = "Anklicken, um diese Voreinstellung anzuwenden und zu suchen."
 L["tooltip.edit"]       = "Bearbeiten"
 L["tooltip.delete"]     = "Löschen (Umschalt halten)"
+
+L["toggle.tooltip"]     = "Fenster mit den Voreinstellungen ein- oder ausblenden."
+L["toggle.pin"]         = "Rechtsklick heftet das Fenster wieder neben die Gruppensuche."
 
 L["msg.becamemanual"]   = "#%s ist jetzt manuell"
 L["msg.clearsearchbox"] = "Im Suchfeld steht noch %s"

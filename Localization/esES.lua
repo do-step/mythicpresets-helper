@@ -28,6 +28,7 @@ L["copy.title"]          = "Nivel de piedra angular"
 L["copy.hint"]           = "Ctrl+C y pega en el campo de búsqueda"
 L["help.toggle"]         = "mostrar u ocultar la ventana de preajustes"
 L["help.probe"]          = "diagnóstico del buscador de grupos"
+L["help.debug"]          = "activar o desactivar el registro paso a paso"
 L["help.offset"]         = "desplazar la ventana más a la derecha"
 L["help.reset"]          = "recalcular la posición de la ventana"
 L["info.title"]          = "Cómo se usa"
@@ -54,6 +55,10 @@ L["tooltip.resetfilter"] = "Quita el preajuste aplicado y vuelve a abrir la bús
 L["tooltip.apply"]       = "Pulsa para aplicar este preajuste y buscar."
 L["tooltip.edit"]        = "Editar"
 L["tooltip.delete"]      = "Borrar (mantén Mayús)"
+
+L["toggle.tooltip"]      = "Muestra u oculta la ventana de preajustes."
+L["toggle.pin"]          = "Clic derecho vuelve a fijar la ventana junto al buscador de grupos."
+
 L["msg.becamemanual"]    = "#%s ahora es manual"
 L["msg.clearsearchbox"]  = "El campo de búsqueda todavía tiene %s"
 L["msg.notready"]        = "Aún no está listo."

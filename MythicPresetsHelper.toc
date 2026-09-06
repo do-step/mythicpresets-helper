@@ -1,6 +1,6 @@
 ## Interface: 120100
 ## Title: MythicPresets Helper
-## Version: 0.1.0
+## Version: 0.1.1
 ## IconTexture: 525134
 ## Author: Pych
 ## SavedVariables: MythicPresetsHelperDB
@@ -52,3 +52,4 @@ Raids.lua
 UI\CopyBox.lua
 UI\PresetList.lua
 UI\PresetEdit.lua
+UI\ToggleButton.lua

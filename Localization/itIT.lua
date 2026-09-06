@@ -28,6 +28,7 @@ L["copy.title"]          = "Livello della chiave"
 L["copy.hint"]           = "Ctrl+C, poi incolla nel campo di ricerca"
 L["help.toggle"]         = "mostra o nascondi la finestra dei preset"
 L["help.probe"]          = "diagnostica del cercagruppi"
+L["help.debug"]          = "attiva o disattiva il log passo passo"
 L["help.offset"]         = "sposta la finestra più a destra"
 L["help.reset"]          = "ricalcola la posizione della finestra"
 L["info.title"]          = "Come si usa"
@@ -54,6 +55,10 @@ L["tooltip.resetfilter"] = "Toglie il preset applicato e riapre la ricerca a tut
 L["tooltip.apply"]       = "Clicca per applicare questo preset e cercare."
 L["tooltip.edit"]        = "Modifica"
 L["tooltip.delete"]      = "Elimina (tieni premuto Maiusc)"
+
+L["toggle.tooltip"]      = "Mostra o nasconde la finestra dei preset."
+L["toggle.pin"]          = "Clic destro rifissa la finestra accanto al cercagruppi."
+
 L["msg.becamemanual"]    = "#%s ora è manuale"
 L["msg.clearsearchbox"]  = "Nel campo di ricerca c'è ancora %s"
 L["msg.notready"]        = "Non ancora pronto."

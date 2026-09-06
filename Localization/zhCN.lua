@@ -28,6 +28,7 @@ L["copy.title"]          = "钥石等级"
 L["copy.hint"]           = "Ctrl+C，然后粘贴到搜索框"
 L["help.toggle"]         = "显示或隐藏预设窗口"
 L["help.probe"]          = "队伍查找器诊断"
+L["help.debug"]          = "开启或关闭逐步日志"
 L["help.offset"]         = "把窗口再往右移"
 L["help.reset"]          = "重新计算窗口位置"
 L["info.title"]          = "使用方法"
@@ -54,6 +55,10 @@ L["tooltip.resetfilter"] = "取消已应用的预设，把搜索恢复到全部�
 L["tooltip.apply"]       = "点击应用此预设并搜索。"
 L["tooltip.edit"]        = "编辑"
 L["tooltip.delete"]      = "删除（按住 Shift）"
+
+L["toggle.tooltip"]      = "显示或隐藏预设窗口。"
+L["toggle.pin"]          = "右键点击可将窗口重新固定到队伍查找器旁边。"
+
 L["msg.becamemanual"]    = "#%s 现在是手动预设"
 L["msg.clearsearchbox"]  = "搜索框里还有 %s"
 L["msg.notready"]        = "还没准备好。"

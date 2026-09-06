@@ -255,11 +255,16 @@ local function CreateWindow()
     end)
     frame:Hide()
 
+    frame:HookScript("OnHide", function ()
+        MPH.HideCopyBox()
+    end)
+
     MPH.SetTitle(frame, L["window.title"])
 
     frame.CloseButton:SetScript("OnClick", function ()
         MPH.db.window.shown = false
         frame:Hide()
+        MPH.RefreshToggleButton()
     end)
 
     frame.InfoButton = CreateFrame("Button", nil, frame)
@@ -398,6 +403,7 @@ function MPH.ToggleWindow()
         MPH.RefreshWindow()
         frame:Show()
     end
+    MPH.RefreshToggleButton()
 end
 
 local function ShouldFollowGroupFinder()
@@ -415,7 +421,10 @@ local function UpdateVisibility()
     else
         frame:Hide()
     end
+    MPH.RefreshToggleButton()
 end
+
+MPH.UpdateWindowVisibility = UpdateVisibility
 
 table.insert(MPH.onLogin, function ()
     CreateWindow()

@@ -30,6 +30,9 @@ finder to the dungeons where you actually have a key level to push.
 The search box keeps its text between searches, so you type the level once and then switch
 presets freely.
 
+The `MPH` checkbox above the search hides and shows the window. A right-click on it pins the
+window back beside the group finder.
+
 ## Why you type the keystone level yourself
 
 The keystone level of a listed group exists only in the group title, and Blizzard protects it:
@@ -101,6 +104,9 @@ https://t.me/p_y_c_h/3
 
 Строка поиска сохраняет текст между поисками, так что уровень набирается один раз.
 
+Галочка `MPH` над поиском скрывает и показывает окно. Правый клик по ней возвращает окно на
+место рядом с поиском групп.
+
 ## Почему уровень ключа вводится вручную
 
 Уровень ключа есть только в названии группы, а Blizzard его закрыла: название это защищённая
@@ -117,6 +123,7 @@ https://t.me/p_y_c_h/3
 |---|---|
 | `/mph` | показать или скрыть окно пресетов |
 | `/mph probe` | диагностика поиска групп |
+| `/mph debug` | включить или выключить пошаговый лог |
 | `/mph offset <n>` | дополнительный сдвиг вправо поверх измеренного |
 | `/mph reset` | сбросить положение окна |
 | `/mph help` | список команд |
