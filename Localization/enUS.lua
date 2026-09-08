@@ -30,6 +30,7 @@ L["copy.title"]         = "Keystone level"
 L["copy.hint"]          = "Ctrl+C, then paste into the search box"
 L["help.toggle"]        = "show or hide the preset window"
 L["help.probe"]         = "group finder diagnostics"
+L["help.debug"]         = "toggle step by step logging"
 L["help.offset"]        = "nudge the window further right"
 L["help.reset"]         = "recompute the window position"
 
@@ -60,6 +61,9 @@ L["tooltip.resetfilter"] = "Clears the applied preset and opens the search back 
 L["tooltip.apply"]      = "Click to apply this preset and search."
 L["tooltip.edit"]       = "Edit"
 L["tooltip.delete"]     = "Delete (hold Shift)"
+
+L["toggle.tooltip"]     = "Show or hide the preset window."
+L["toggle.pin"]         = "Right-click pins the window back beside the group finder."
 
 L["msg.becamemanual"]   = "#%s is manual now"
 L["msg.clearsearchbox"] = "Search box still has %s"

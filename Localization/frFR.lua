@@ -28,6 +28,7 @@ L["copy.title"]          = "Niveau de clé"
 L["copy.hint"]           = "Ctrl+C, puis collez dans le champ de recherche"
 L["help.toggle"]         = "afficher ou masquer la fenêtre des préréglages"
 L["help.probe"]          = "diagnostic de l'outil de groupe"
+L["help.debug"]          = "activer ou désactiver la journalisation détaillée"
 L["help.offset"]         = "décaler la fenêtre vers la droite"
 L["help.reset"]          = "recalculer la position de la fenêtre"
 L["info.title"]          = "Utilisation"
@@ -54,6 +55,10 @@ L["tooltip.resetfilter"] = "Annule le préréglage appliqué et rouvre la recher
 L["tooltip.apply"]       = "Cliquez pour appliquer ce préréglage et lancer la recherche."
 L["tooltip.edit"]        = "Modifier"
 L["tooltip.delete"]      = "Supprimer (maintenir Maj)"
+
+L["toggle.tooltip"]      = "Affiche ou masque la fenêtre des préréglages."
+L["toggle.pin"]          = "Clic droit refixe la fenêtre à côté de l'outil de groupe."
+
 L["msg.becamemanual"]    = "#%s est maintenant manuel"
 L["msg.clearsearchbox"]  = "Le champ de recherche contient encore %s"
 L["msg.notready"]        = "Pas encore prêt."

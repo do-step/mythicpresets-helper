@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.1
+
+- A `MPH` checkbox above the group finder search: it shows and hides the preset window, and
+  a right-click pins the window back beside the group finder.
+- Presets refresh themselves right after a finished key, as soon as the season data arrives,
+  instead of waiting for the window to be opened. Switching character or any other change to
+  your rating triggers the same check.
+
 ## 0.1.0
 
 First release.
