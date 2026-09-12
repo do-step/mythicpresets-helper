@@ -3,23 +3,23 @@ local ADDON, MPH = ...
 local MAX_CODES = 4
 
 MPH.CMID_CODE = {
-    [560] = "MC",
-    [559] = "NPX",
-    [558] = "MGT",
-    [557] = "WS",
-    [402] = "AA",
-    [239] = "SOTT",
-    [161] = "SR",
-    [556] = "POS",
+    [560] = { code = "MC",   teleport = 1254559 },
+    [559] = { code = "NPX",  teleport = 1254563 },
+    [558] = { code = "MGT",  teleport = 1254572 },
+    [557] = { code = "WS",   teleport = 1254400 },
+    [402] = { code = "AA",   teleport = 393273 },
+    [239] = { code = "SOTT", teleport = 1254551 },
+    [161] = { code = "SR",   teleport = 159898 },
+    [556] = { code = "POS",  teleport = 1254555 },
 
-    [588] = "AOF",
-    [584] = "TBV",
-    [586] = "DON",
-    [587] = "MR",
-    [585] = "VSA",
-    [399] = "RLP",
-    [250] = "TOS",
-    [249] = "KR",
+    [588] = { code = "AOF",  teleport = 1286812 },
+    [584] = { code = "TBV",  teleport = 1286801 },
+    [586] = { code = "DON",  teleport = 1286807 },
+    [587] = { code = "MR",   teleport = 1286809 },
+    [585] = { code = "VSA",  teleport = 1286804 },
+    [399] = { code = "RLP",  teleport = 393256 },
+    [250] = { code = "TOS",  teleport = 1286828 },
+    [249] = { code = "KR",   teleport = 1286831 },
 }
 
 local dungeonCache = nil
@@ -82,7 +82,13 @@ function MPH.GetActivityGroupID(cmID)
 end
 
 function MPH.GetDungeonCode(cmID)
-    return MPH.CMID_CODE[cmID] or ("#" .. tostring(cmID))
+    local entry = MPH.CMID_CODE[cmID]
+    return entry and entry.code or ("#" .. tostring(cmID))
+end
+
+function MPH.GetDungeonTeleport(cmID)
+    local entry = MPH.CMID_CODE[cmID]
+    return entry and entry.teleport or nil
 end
 
 function MPH.GetDungeonLabel(dungeons)
@@ -99,12 +105,14 @@ function MPH.GetDungeonLabel(dungeons)
 end
 
 function MPH.GetDungeonInfo(cmID)
-    local name, _, _, texture = C_ChallengeMode.GetMapUIInfo(cmID)
+    local name, _, _, texture, _, mapID = C_ChallengeMode.GetMapUIInfo(cmID)
     return {
         cmID = cmID,
         name = name or ("#" .. tostring(cmID)),
         code = MPH.GetDungeonCode(cmID),
         texture = texture,
+        mapID = mapID,
+        teleport = MPH.GetDungeonTeleport(cmID),
         activityGroupID = MPH.GetActivityGroupID(cmID),
     }
 end
@@ -124,6 +132,29 @@ function MPH.GetSeasonDungeons()
 
     dungeonCache = dungeons
     return dungeons
+end
+
+local function MatchDungeon(dungeon, mapID, activityGroupID)
+    if mapID and dungeon.mapID == mapID then return "mapID" end
+    if activityGroupID and dungeon.activityGroupID == activityGroupID then return "activityGroupID" end
+    return nil
+end
+
+function MPH.FindDungeonByActivity(mapID, activityGroupID)
+    local seen = {}
+    for _, dungeon in ipairs(MPH.GetSeasonDungeons()) do
+        seen[dungeon.cmID] = true
+        local matchedBy = MatchDungeon(dungeon, mapID, activityGroupID)
+        if matchedBy then return dungeon, matchedBy end
+    end
+    for cmID in pairs(MPH.CMID_CODE) do
+        if not seen[cmID] then
+            local dungeon = MPH.GetDungeonInfo(cmID)
+            local matchedBy = MatchDungeon(dungeon, mapID, activityGroupID)
+            if matchedBy then return dungeon, matchedBy end
+        end
+    end
+    return nil
 end
 
 table.insert(MPH.onLogin, function ()

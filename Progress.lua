@@ -233,7 +233,7 @@ local pendingRun = false
 local attempts = 0
 local scheduled = false
 
-local function CompletionInfo()
+function Progress.CompletionInfo()
     if not C_ChallengeMode.GetChallengeCompletionInfo then return nil end
     local ok, info = pcall(C_ChallengeMode.GetChallengeCompletionInfo)
     return ok and info or nil
@@ -284,7 +284,7 @@ table.insert(MPH.onLogin, function ()
         MPH.Debug("event %s, pending %s", event, tostring(pendingRun))
 
         if event == "CHALLENGE_MODE_COMPLETED" then
-            local info = CompletionInfo()
+            local info = Progress.CompletionInfo()
             if info then
                 MPH.Debug("completed: map %s level %s onTime %s practice %s score %s -> %s",
                     tostring(info.mapChallengeModeID), tostring(info.level), tostring(info.onTime),

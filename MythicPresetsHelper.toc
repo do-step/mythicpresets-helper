@@ -1,25 +1,26 @@
 ## Interface: 120100
 ## Title: MythicPresets Helper
-## Version: 0.1.1
+## Version: 0.2.0
 ## IconTexture: 525134
 ## Author: Pych
 ## SavedVariables: MythicPresetsHelperDB
-## OptionalDeps: PremadeGroupsFilter
+## SavedVariablesPerCharacter: MythicPresetsHelperCharDB
+## OptionalDeps: PremadeGroupsFilter, EllesmereUI
 ## X-Website: https://github.com/do-step/mythicpresets-helper
 ## X-Curse-Project-ID: 1684487
 ## X-License: MIT
 
-## Notes: Mythic+ group search presets built from your own progress. Unofficial companion to Premade Groups Filter.
-## Notes-ruRU: Пресеты поиска групп M+ из вашего прогресса. Неофициальное дополнение к Premade Groups Filter.
-## Notes-deDE: Voreinstellungen für die Gruppensuche aus Eurem Mythisch+-Fortschritt. Inoffizielle Ergänzung zu Premade Groups Filter.
-## Notes-frFR: Préréglages de recherche de groupe M+ basés sur votre progression. Complément non officiel à Premade Groups Filter.
-## Notes-esES: Preajustes de búsqueda de grupos M+ a partir de tu progreso. Complemento no oficial de Premade Groups Filter.
-## Notes-esMX: Preajustes de búsqueda de grupos M+ a partir de tu progreso. Complemento no oficial de Premade Groups Filter.
-## Notes-itIT: Preset per la ricerca gruppi M+ basati sui tuoi progressi. Aggiunta non ufficiale a Premade Groups Filter.
-## Notes-ptBR: Predefinições de busca de grupos M+ a partir do seu progresso. Complemento não oficial ao Premade Groups Filter.
-## Notes-koKR: 내 진행도로 만드는 쐐기돌 파티 찾기 프리셋. Premade Groups Filter의 비공식 보조 애드온.
-## Notes-zhCN: 根据你的进度生成的大秘境组队搜索预设。Premade Groups Filter 的非官方辅助插件。
-## Notes-zhTW: 根據你的進度產生的大秘境組隊搜尋預設。Premade Groups Filter 的非官方輔助插件。
+## Notes: Mythic+ group search presets built from your own progress.
+## Notes-ruRU: Пресеты поиска групп M+ из вашего прогресса.
+## Notes-deDE: Voreinstellungen für die Gruppensuche aus Eurem Mythisch+-Fortschritt.
+## Notes-frFR: Préréglages de recherche de groupe M+ basés sur votre progression.
+## Notes-esES: Preajustes de búsqueda de grupos M+ a partir de tu progreso.
+## Notes-esMX: Preajustes de búsqueda de grupos M+ a partir de tu progreso.
+## Notes-itIT: Preset per la ricerca gruppi M+ basati sui tuoi progressi.
+## Notes-ptBR: Predefinições de busca de grupos M+ a partir do seu progresso.
+## Notes-koKR: 내 진행도로 만드는 쐐기돌 파티 찾기 프리셋.
+## Notes-zhCN: 根据你的进度生成的大秘境组队搜索预设。
+## Notes-zhTW: 根據你的進度產生的大秘境組隊搜尋預設。
 
 ## Category-enUS: Dungeons & Raids
 ## Category-ruRU: Подземелья и рейды
@@ -45,11 +46,33 @@ Localization\ptBR.lua
 Localization\ruRU.lua
 Localization\zhCN.lua
 Localization\zhTW.lua
+Localization\Slang\enUS.lua
+Localization\Slang\deDE.lua
+Localization\Slang\esES.lua
+Localization\Slang\esMX.lua
+Localization\Slang\frFR.lua
+Localization\Slang\itIT.lua
+Localization\Slang\ptBR.lua
+Localization\Slang\ruRU.lua
 Dungeons.lua
 Presets.lua
 Progress.lua
 Raids.lua
+Filter.lua
+Slang.lua
+Teleport.lua
+Hearthstone.lua
+Thanks.lua
+Loot.lua
+Errors.lua
+Settings.lua
+UI\Skin.lua
 UI\CopyBox.lua
 UI\PresetList.lua
 UI\PresetEdit.lua
-UI\ToggleButton.lua
+UI\RaidEdit.lua
+UI\FinderTab.lua
+UI\TeleportPage.lua
+UI\LootPage.lua
+UI\SlangPage.lua
+UI\RapportPage.lua

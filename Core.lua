@@ -5,6 +5,16 @@ MPH.PREFIX = "|cff33ff99MPH|r "
 
 MPH.L = setmetatable({}, { __index = function (_, key) return key end })
 
+function MPH.AddSlangText(text)
+    MPH.SLANG_TEXT = MPH.SLANG_TEXT or {}
+    for group, values in pairs(text) do
+        MPH.SLANG_TEXT[group] = MPH.SLANG_TEXT[group] or {}
+        for key, value in pairs(values) do
+            MPH.SLANG_TEXT[group][key] = value
+        end
+    end
+end
+
 MPH.DB_VERSION = 1
 MPH.MAX_KEY_AHEAD = 5
 MPH.LAYOUT_VERSION = 1
@@ -16,6 +26,9 @@ local DB_DEFAULTS = {
         enabled = true,
         delta = 100,
     },
+    fit = {
+        enabled = false,
+    },
     keyAhead = 1,
     debug = false,
     lastScore = 0,
@@ -24,11 +37,38 @@ local DB_DEFAULTS = {
         runs = {},
     },
     window = {
-        shown = true,
+        autoOpen = true,
+        onboarded = false,
         offset = 0,
         point = nil,
         x = 0,
         y = 0,
+    },
+    teleport = {
+        enabled = true,
+        randomStone = true,
+    },
+    thanks = {
+        enabled = false,
+    },
+    loot = {
+        autoOpen = true,
+    },
+    errors = {
+        enabled = true,
+    },
+}
+
+MPH.THANKS_DEFAULT = "ty bb <3 (auto-sent by MPH addon)"
+
+local CHAR_DEFAULTS = {
+    thanks = {
+        text = MPH.THANKS_DEFAULT,
+    },
+    loot = {
+        mapID = 0,
+        level = 0,
+        items = {},
     },
 }
 
@@ -41,6 +81,16 @@ function MPH.Debug(msg, ...)
     if not MPH.db or not MPH.db.debug then return end
     if select("#", ...) > 0 then msg = string.format(msg, ...) end
     DEFAULT_CHAT_FRAME:AddMessage(MPH.PREFIX .. "|cff888888" .. tostring(msg) .. "|r")
+end
+
+function MPH.SendParty(text, tag)
+    local lockdown = C_ChatInfo.InChatMessagingLockdown and C_ChatInfo.InChatMessagingLockdown()
+    local active = C_ChallengeMode.IsChallengeModeActive and C_ChallengeMode.IsChallengeModeActive()
+    local send = C_ChatInfo.SendChatMessage or SendChatMessage
+    local ok, err = pcall(send, text, "PARTY")
+    MPH.Debug("%s: lockdown %s, active %s, send %s", tag or "chat", tostring(lockdown), tostring(active),
+        ok and "ok" or tostring(err))
+    return ok
 end
 
 function MPH.FillDefaults(target, defaults)
@@ -85,12 +135,88 @@ end
 MPH.CATEGORY_DUNGEONS = 2
 MPH.CATEGORY_RAIDS = 3
 
+local IsSecret = issecretvalue or function () return false end
+
+local function IsFinderCategory(categoryID)
+    return categoryID == MPH.CATEGORY_DUNGEONS or categoryID == MPH.CATEGORY_RAIDS
+end
+
+local function ListingCategory()
+    if not C_LFGList.HasActiveEntryInfo or not C_LFGList.HasActiveEntryInfo() then return nil end
+
+    local info = C_LFGList.GetActiveEntryInfo()
+    if type(info) ~= "table" or IsSecret(info.activityIDs) then return nil end
+
+    local activityID = info.activityIDs and info.activityIDs[1] or info.activityID
+    if activityID == nil or IsSecret(activityID) then return nil end
+
+    local activity = C_LFGList.GetActivityInfoTable(activityID)
+    if type(activity) ~= "table" or IsSecret(activity.categoryID) then return nil end
+    return activity.categoryID
+end
+
+function MPH.IsFinderScreen()
+    if not LFGListFrame then return false end
+
+    local search = LFGListFrame.SearchPanel
+    if search and search:IsVisible() then
+        return IsFinderCategory(search.categoryID)
+    end
+
+    local viewer = LFGListFrame.ApplicationViewer
+    if viewer and viewer:IsVisible() then
+        local ok, categoryID = pcall(ListingCategory)
+        return ok and IsFinderCategory(categoryID)
+    end
+    return false
+end
+
+function MPH.IsGroupFinderPage()
+    return GroupFinderFrame ~= nil and GroupFinderFrame:IsVisible()
+end
+
+local function CategoryFilters(selection, categoryID)
+    for _, button in ipairs(selection.CategoryButtons or {}) do
+        if button.categoryID == categoryID then return button.filters end
+    end
+    return 0
+end
+
+function MPH.OpenGroupSearch(categoryID)
+    if not LFGListFrame or not LFGListPVEStub or not PVEFrame_ShowFrame then return end
+    if InCombatLockdown() then return end
+
+    categoryID = categoryID or (MPH.GetActiveKind() == "raid" and MPH.CATEGORY_RAIDS or MPH.CATEGORY_DUNGEONS)
+    local search = LFGListFrame.SearchPanel
+    if search and search:IsVisible() and search.categoryID == categoryID then return end
+
+    local listed = C_LFGList.HasActiveEntryInfo and C_LFGList.HasActiveEntryInfo()
+    local ok, err = pcall(function ()
+        if PVEFrame:IsShown() then
+            PVEFrame_ShowFrame("GroupFinderFrame", LFGListPVEStub)
+        else
+            PVEFrame_ToggleFrame("GroupFinderFrame", LFGListPVEStub)
+        end
+        if listed then return end
+        local selection = LFGListFrame.CategorySelection
+        LFGListCategorySelection_SelectCategory(selection, categoryID, CategoryFilters(selection, categoryID))
+        LFGListCategorySelection_StartFindGroup(selection)
+    end)
+    MPH.Debug("group search: category %s, %s", tostring(categoryID), ok and "opened" or tostring(err))
+end
+
 function MPH.GetSearchCategory()
     if not LFGListFrame then return nil end
 
     local panel = LFGListFrame.SearchPanel
     if panel and panel:IsVisible() and panel.categoryID then
         return panel.categoryID
+    end
+
+    local viewer = LFGListFrame.ApplicationViewer
+    if viewer and viewer:IsVisible() then
+        local ok, categoryID = pcall(ListingCategory)
+        if ok and categoryID then return categoryID end
     end
 
     local selection = LFGListFrame.CategorySelection
@@ -115,14 +241,27 @@ function MPH.HasPGF()
     return PremadeGroupsFilter ~= nil
 end
 
+function MPH.UsesPGF()
+    local PGF = MPH.GetPGF()
+    if not PGF or not PGF.Dialog or not PGF.Dialog.GetEnabled then return false end
+    return PGF.Dialog:GetEnabled() and true or false
+end
+
 MPH.onLogin = {}
 
 local function InitDB()
     MythicPresetsHelperDB = MythicPresetsHelperDB or {}
     MythicPresetsHelperDB.window = MythicPresetsHelperDB.window or {}
     MythicPresetsHelperDB.window.reserve = nil
+    MythicPresetsHelperDB.window.shown = nil
+    local teleport = MythicPresetsHelperDB.teleport
+    if type(teleport) == "table" then
+        teleport.point, teleport.relPoint, teleport.x, teleport.y = nil, nil, nil, nil
+    end
     MPH.FillDefaults(MythicPresetsHelperDB, DB_DEFAULTS)
     MPH.db = MythicPresetsHelperDB
+    MythicPresetsHelperCharDB = MPH.FillDefaults(MythicPresetsHelperCharDB or {}, CHAR_DEFAULTS)
+    MPH.charDB = MythicPresetsHelperCharDB
 end
 
 local eventFrame = CreateFrame("Frame", "MythicPresetsHelperEventFrame")
@@ -152,11 +291,13 @@ local function DescribeValue(value)
     return tostring(value)
 end
 
+MPH.DescribeValue = DescribeValue
+
 function MPH.Probe()
     MPH.Print("---- probe ----")
     MPH.Print("client build: %s / interface %s", (select(1, GetBuildInfo())), tostring(select(4, GetBuildInfo())))
     MPH.Print("PGF installed: %s", tostring(MPH.HasPGF()))
-    MPH.Print("toggle button: %s", MPH.DescribeToggleButton and MPH.DescribeToggleButton() or "module not loaded")
+    MPH.Print("finder tab: %s", MPH.DescribeFinderTab and MPH.DescribeFinderTab() or "module not loaded")
     local pending, tries = MPH.Progress.GetPending()
     MPH.Print("score: %d, last seen %s, pending rebuild %s (attempt %d)",
         MPH.GetPlayerScore(), tostring(MPH.db.lastScore), tostring(pending), tries)
@@ -205,6 +346,9 @@ function MPH.Probe()
             summary[dungeon.cmID] or "-",
             recent[dungeon.cmID] or 0)
     end
+    MPH.Print("teleport (code mapID/spell, + = known): %s", MPH.Teleport.Describe())
+    MPH.Print("hearthstone (- = not usable): %s", MPH.Hearthstone.Describe())
+    MPH.Print("errors: %s", MPH.Errors.Describe())
     MPH.Print("current raid: %s", tostring(MPH.Raids.GetCurrentRaidName()))
     for _, filters in ipairs({ 5, 1, 6, 2, 4, 0 }) do
         local ok, groups = pcall(C_LFGList.GetAvailableActivityGroups, MPH.CATEGORY_RAIDS, filters)
@@ -295,6 +439,8 @@ SlashCmdList["MYTHICPRESETSHELPER"] = function (msg)
             if MPH.PinWindowBesideGroupFinder then MPH.PinWindowBesideGroupFinder() end
         end
         MPH.Print("offset: %d", tonumber(MPH.db.window.offset) or 0)
+    elseif cmd == "loot" and rest == "test" and MPH.db.debug then
+        MPH.Loot.Test()
     elseif cmd == "help" then
         PrintHelp()
     else
