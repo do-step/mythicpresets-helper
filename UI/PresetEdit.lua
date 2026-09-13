@@ -20,11 +20,13 @@ local function CreateDungeonRow(index, parent, anchorTo)
     row.Check = CreateFrame("CheckButton", nil, row, "UICheckButtonTemplate")
     row.Check:SetSize(22, 22)
     row.Check:SetPoint("LEFT", 0, 0)
+    MPH.SkinCheck(row.Check)
 
     row.Icon = row:CreateTexture(nil, "ARTWORK")
     row.Icon:SetSize(18, 18)
     row.Icon:SetPoint("LEFT", row.Check, "RIGHT", 2, 0)
     row.Icon:SetTexCoord(0.1, 0.9, 0.1, 0.9)
+    MPH.SkinIcon(row.Icon, row)
 
     row.Name = row:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
     row.Name:SetPoint("LEFT", row.Icon, "RIGHT", 6, 0)
@@ -91,12 +93,7 @@ local function OnSave()
     end
 
     if editingIndex then
-
-        local existing = MPH.Presets.Get(editingIndex)
         MPH.Presets.Save(editingIndex, preset)
-        if existing and existing.auto then
-            MPH.Print(L["msg.becamemanual"], preset.name)
-        end
     else
         MPH.Presets.Add(preset)
     end
@@ -106,6 +103,7 @@ end
 
 local function CreateDialog()
     dialog = CreateFrame("Frame", "MythicPresetsHelperEditFrame", UIParent, "BasicFrameTemplateWithInset")
+    MPH.SkinShell(dialog)
     dialog:SetWidth(FRAME_WIDTH)
     dialog:SetHeight(320)
     dialog:SetPoint("CENTER")
@@ -113,7 +111,7 @@ local function CreateDialog()
         local list = _G["MythicPresetsHelperFrame"]
         self:ClearAllPoints()
         if list and list:IsVisible() then
-            self:SetPoint("TOPLEFT", list, "TOPRIGHT", 8, 0)
+            self:SetPoint("TOPLEFT", list, "TOPRIGHT", 42, 0)
         else
             self:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
         end
@@ -137,6 +135,7 @@ local function CreateDialog()
     dialog.NameBox:SetPoint("TOPLEFT", dialog.NameLabel, "BOTTOMLEFT", 6, -4)
     dialog.NameBox:SetAutoFocus(false)
     dialog.NameBox:SetScript("OnEscapePressed", function (self) self:ClearFocus() end)
+    MPH.SkinEditBox(dialog.NameBox)
 
     dialog.KeyLabel = dialog:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
     dialog.KeyLabel:SetPoint("TOPLEFT", dialog.NameBox, "BOTTOMLEFT", -6, -10)
@@ -148,6 +147,7 @@ local function CreateDialog()
     dialog.KeyBox:SetAutoFocus(false)
     dialog.KeyBox:SetMaxLetters(10)
     dialog.KeyBox:SetScript("OnEscapePressed", function (self) self:ClearFocus() end)
+    MPH.SkinEditBox(dialog.KeyBox)
 
     dialog.KeyHint = dialog:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
     dialog.KeyHint:SetPoint("LEFT", dialog.KeyBox, "RIGHT", 8, 0)
@@ -164,30 +164,37 @@ local function CreateDialog()
     dialog.AllButton:SetPoint("LEFT", dialog.DungeonsLabel, "RIGHT", 12, 0)
     dialog.AllButton:SetText(L["button.all"])
     dialog.AllButton:SetScript("OnClick", function () SetAllDungeons(true) end)
+    MPH.SkinButton(dialog.AllButton)
 
     dialog.NoneButton = CreateFrame("Button", nil, dialog, "UIPanelButtonTemplate")
     dialog.NoneButton:SetSize(60, 18)
     dialog.NoneButton:SetPoint("LEFT", dialog.AllButton, "RIGHT", 4, 0)
     dialog.NoneButton:SetText(L["button.none"])
     dialog.NoneButton:SetScript("OnClick", function () SetAllDungeons(false) end)
+    MPH.SkinButton(dialog.NoneButton)
 
     dialog.SaveButton = CreateFrame("Button", nil, dialog, "UIPanelButtonTemplate")
     dialog.SaveButton:SetSize(110, 22)
     dialog.SaveButton:SetPoint("BOTTOMLEFT", 16, 12)
     dialog.SaveButton:SetText(L["button.save"])
     dialog.SaveButton:SetScript("OnClick", OnSave)
+    MPH.SkinButton(dialog.SaveButton)
 
     dialog.CancelButton = CreateFrame("Button", nil, dialog, "UIPanelButtonTemplate")
     dialog.CancelButton:SetSize(110, 22)
     dialog.CancelButton:SetPoint("BOTTOMRIGHT", -16, 12)
     dialog.CancelButton:SetText(L["button.cancel"])
     dialog.CancelButton:SetScript("OnClick", function () dialog:Hide() end)
+    MPH.SkinButton(dialog.CancelButton)
 
     tinsert(UISpecialFrames, "MythicPresetsHelperEditFrame")
 end
 
 function MPH.ShowEditDialog(index)
     if not dialog then CreateDialog() end
+
+    local other = _G["MythicPresetsHelperRaidEditFrame"]
+    if other then other:Hide() end
 
     editingIndex = index
     local preset = index and MPH.Presets.Get(index) or MPH.Presets.NewTemplate()

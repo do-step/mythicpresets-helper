@@ -3,9 +3,13 @@ local L = MPH.L
 
 local frame
 
+local KEY_HEIGHT = 132
+local RAID_HEIGHT = 100
+
 local function CreateFrame_()
     frame = CreateFrame("Frame", "MythicPresetsHelperCopyFrame", UIParent, "BasicFrameTemplateWithInset")
-    frame:SetSize(300, 132)
+    MPH.SkinShell(frame)
+    frame:SetSize(300, KEY_HEIGHT)
     frame:SetFrameStrata("FULLSCREEN_DIALOG")
     frame:SetToplevel(true)
     frame:SetMovable(true)
@@ -24,6 +28,7 @@ local function CreateFrame_()
     frame.Box:SetAutoFocus(false)
     frame.Box:SetFontObject("GameFontHighlight")
     frame.Box:SetJustifyH("CENTER")
+    MPH.SkinEditBox(frame.Box)
     frame.Box:SetScript("OnEscapePressed", function () frame:Hide() end)
     frame.Box:SetScript("OnEnterPressed", function () frame:Hide() end)
     frame.Box:SetScript("OnTextChanged", function (self)
@@ -52,6 +57,7 @@ local function CreateFrame_()
     frame.AheadBox:SetAutoFocus(false)
     frame.AheadBox:SetNumeric(true)
     frame.AheadBox:SetMaxLetters(1)
+    MPH.SkinEditBox(frame.AheadBox)
     frame.AheadBox:SetScript("OnEscapePressed", function (self) self:ClearFocus() end)
     frame.AheadBox:SetScript("OnEnterPressed", function (self) self:ClearFocus() end)
     frame.AheadBox:SetScript("OnTextChanged", function (self)
@@ -96,12 +102,14 @@ function MPH.ShowCopyBox(preset)
     local text = MPH.Presets.SearchText(preset)
     if not text then return end
 
+    local showAhead = MPH.GetPresetKind(preset) ~= "raid"
+    frame:SetHeight(showAhead and KEY_HEIGHT or RAID_HEIGHT)
     frame:ClearAllPoints()
 
     local host = _G["MythicPresetsHelperFrame"]
     if host and host:IsVisible() then
         local top = host:GetTop()
-        if top and top + frame:GetHeight() + 8 <= UIParent:GetHeight() then
+        if top and top + KEY_HEIGHT + 8 <= UIParent:GetHeight() then
             frame:SetPoint("BOTTOM", host, "TOP", 0, 8)
         else
             frame:SetPoint("TOP", host, "BOTTOM", 0, -8)
@@ -115,11 +123,9 @@ function MPH.ShowCopyBox(preset)
     frame.closing = nil
     frame.preset = preset
 
-    local showAhead = MPH.GetPresetKind(preset) ~= "raid"
     MPH.SetTitle(frame, showAhead and L["copy.title"] or L["copy.titleraid"])
     frame.AheadLabel:SetShown(showAhead)
     frame.AheadBox:SetShown(showAhead)
-    frame:SetHeight(showAhead and 132 or 100)
     frame.AheadBox:SetText(tostring(tonumber(MPH.db.keyAhead) or 0))
     frame.value = text
     frame.Box:SetText(text)

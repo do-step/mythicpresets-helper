@@ -12,7 +12,19 @@ function Presets.Get(index)
     return MPH.db.presets[index]
 end
 
-function Presets.NewTemplate()
+function Presets.NewTemplate(kind)
+    if kind == "raid" then
+        local format = MPH.RAID_FORMATS[1]
+        return {
+            kind = "raid",
+            name = "",
+            keyText = "",
+            dungeons = {},
+            membersMin = format.size - MPH.RAID_MIN_OFFSET,
+            armor = MPH.GetPlayerArmor(),
+            armorMax = format.armorMax,
+        }
+    end
     return { name = "", keyText = "", dungeons = {} }
 end
 
@@ -25,7 +37,30 @@ function Presets.Save(index, preset)
     MPH.db.presets[index] = preset
 end
 
+function Presets.Copy(index)
+    local source = MPH.db.presets[index]
+    if not source then return nil end
+
+    local copy = {}
+    for key, value in pairs(source) do
+        copy[key] = value
+    end
+    copy.dungeons = {}
+    for _, cmID in ipairs(source.dungeons or {}) do
+        table.insert(copy.dungeons, cmID)
+    end
+    copy.auto = nil
+    copy.autoKind = nil
+    copy.autoLevel = nil
+    copy.listIndex = nil
+
+    Presets.Add(copy)
+    return copy
+end
+
 function Presets.Delete(index)
+    local preset = MPH.db.presets[index]
+    if not preset or preset.auto then return end
     table.remove(MPH.db.presets, index)
     if MPH.db.activePreset == index then
         MPH.db.activePreset = nil
@@ -85,7 +120,7 @@ function Presets.Matches(preset, current)
     return current == preset.keyText or current == wanted
 end
 
-function Presets.BuildExpression(preset, ratingMin, ratingMax)
+function Presets.BuildExpression(preset, ratingMin, ratingMax, fit)
     local parts = {}
 
     table.insert(parts, "mythicplus")
@@ -94,14 +129,31 @@ function Presets.BuildExpression(preset, ratingMin, ratingMax)
         table.insert(parts, string.format("mprating >= %d and mprating <= %d", ratingMin, ratingMax))
     end
 
+    if fit then
+        table.insert(parts, "partyfit and blfit")
+    end
+
     return table.concat(parts, " and ")
 end
 
-function Presets.BuildAdvancedFilter(preset)
-    local PGF = MPH.GetPGF()
+local function BaseAdvancedFilter()
+    local filter = C_LFGList.GetAdvancedFilter()
+    filter.needsTank = false
+    filter.needsHealer = false
+    filter.needsDamage = false
+    filter.hasTank = false
+    filter.hasHealer = false
+    filter.minimumRating = 0
+    filter.difficultyNormal = true
+    filter.difficultyHeroic = true
+    filter.difficultyMythic = true
+    filter.difficultyMythicPlus = true
+    filter.activities = {}
+    return filter
+end
 
-    local filter = (PGF and PGF.GetAdvancedFilterDefaults and PGF.GetAdvancedFilterDefaults())
-            or C_LFGList.GetAdvancedFilter()
+function Presets.BuildAdvancedFilter(preset, ratingMin, fit)
+    local filter = BaseAdvancedFilter()
 
     filter.difficultyNormal = false
     filter.difficultyHeroic = false
@@ -113,10 +165,26 @@ function Presets.BuildAdvancedFilter(preset)
         local activityGroupID = MPH.GetActivityGroupID(cmID)
         if activityGroupID then table.insert(activities, activityGroupID) end
     end
-
     filter.activities = activities
 
+    if ratingMin then filter.minimumRating = ratingMin end
+
+    if fit then
+        local roles = MPH.GetPartyRoles()
+        filter.needsTank = roles.TANK > 0
+        filter.needsHealer = roles.HEALER > 0
+        filter.needsDamage = roles.DAMAGER > 0
+    end
+
     return filter
+end
+
+local function SaveAdvancedFilter(filter, label)
+    local ok, err = pcall(C_LFGList.SaveAdvancedFilter, filter)
+    if not ok then
+        MPH.Print("%s: %s", label, tostring(err))
+    end
+    return ok
 end
 
 local function ReadSearchBox(panel)
@@ -127,55 +195,78 @@ local function ReadSearchBox(panel)
     return text
 end
 
-local warnedAboutPGFDungeons = false
-
-local function CheckPGFConflict()
+local function PGFDungeonPanel()
     local PGF = MPH.GetPGF()
-    if not PGF or not PGF.Dialog then return end
-
-    local panel = PGF.Dialog.activePanel
-    if panel and panel.name == "dungeon" and panel.GetNumDungeonsSelected
-            and panel:GetNumDungeonsSelected() > 0 and not warnedAboutPGFDungeons then
-        warnedAboutPGFDungeons = true
-        MPH.Print(L["msg.pgfconflict"])
-    end
+    local panel = PGF and PGF.Dialog and PGF.Dialog.activePanel
+    if not panel or panel.name ~= "dungeon" then return nil end
+    if not panel.state or not panel.Dungeons then return nil end
+    if not panel.cmIDs or #panel.cmIDs == 0 then return nil end
+    return panel
 end
 
-local function SyncPGFPanel(selected, ratingMin, ratingMax)
-    local PGF = MPH.GetPGF()
-    if not PGF or not PGF.Dialog then return false end
-
-    local panel = PGF.Dialog.activePanel
-    if not panel or panel.name ~= "dungeon" then return false end
-    if not panel.state or not panel.Dungeons then return false end
-    if not panel.cmIDs or #panel.cmIDs == 0 then return false end
-
-    local count = 0
+local function WritePGFState(panel, selected, ratingMin, ratingMax, fit)
     local index = 1
     while panel.Dungeons["Dungeon" .. index] do
         local cmID = panel.cmIDs[index]
-        local checked = cmID ~= nil and selected[cmID] or false
-        panel.state["dungeon" .. index] = checked
-        if checked then count = count + 1 end
+        panel.state["dungeon" .. index] = cmID ~= nil and selected[cmID] or false
         index = index + 1
     end
 
-    panel.state.expression = ""
-
     panel.state.mprating = panel.state.mprating or {}
-    if ratingMin then
-        panel.state.mprating.act = true
-        panel.state.mprating.min = tostring(ratingMin)
-        panel.state.mprating.max = tostring(ratingMax)
-    else
-        panel.state.mprating.act = false
-        panel.state.mprating.min = ""
-        panel.state.mprating.max = ""
-    end
+    panel.state.mprating.act = ratingMin ~= nil
+    panel.state.mprating.min = ratingMin and tostring(ratingMin) or ""
+    panel.state.mprating.max = ratingMax and tostring(ratingMax) or ""
+
+    panel.state.partyfit = fit and true or false
+    panel.state.blfit = fit and true or false
+end
+
+local function SyncPGFPanel(selected, ratingMin, ratingMax, fit)
+    local panel = PGFDungeonPanel()
+    if not panel then return false end
+
+    WritePGFState(panel, selected, ratingMin, ratingMax, fit)
+    panel.state.expression = ""
 
     panel:Init(panel.state)
     panel:TriggerFilterExpressionChange()
     return true
+end
+
+local function MirrorPGFState(selected, ratingMin, fit)
+    local panel = PGFDungeonPanel()
+    if panel then WritePGFState(panel, selected, ratingMin, nil, fit) end
+end
+
+local function UpdatePGFExpression(expression)
+    local PGF = MPH.GetPGF()
+    local active = PGF and PGF.Dialog and PGF.Dialog.activePanel
+    if not active then return end
+    local sorting = active.name == "mini" and "" or nil
+    PGF.Dialog:UpdateExpression(expression, sorting)
+end
+
+local function ApplyDungeonFilters(preset)
+    local selected = {}
+    for _, cmID in ipairs(preset.dungeons) do selected[cmID] = true end
+
+    local ratingMin, ratingMax = MPH.GetRatingRange()
+    local fit = MPH.db.fit.enabled
+
+    if MPH.UsesPGF() then
+        if SyncPGFPanel(selected, ratingMin, ratingMax, fit) then return true end
+        UpdatePGFExpression(Presets.BuildExpression(preset, ratingMin, ratingMax, fit))
+    else
+        MirrorPGFState(selected, ratingMin, fit)
+    end
+
+    return SaveAdvancedFilter(Presets.BuildAdvancedFilter(preset, ratingMin, fit), "filter")
+end
+
+local function ApplyRaidFilters(preset)
+    if not MPH.UsesPGF() then return end
+    if MPH.Raids.SyncPGFPanel(preset) then return end
+    UpdatePGFExpression(MPH.Raids.BuildExpression(preset))
 end
 
 function Presets.Reset()
@@ -188,32 +279,14 @@ function Presets.Reset()
 
     MPH.db.activePreset = nil
 
-    local PGF = MPH.GetPGF()
-    if not SyncPGFPanel({}, nil, nil) then
-        if PGF and PGF.Dialog and PGF.Dialog.activePanel then
-            local sorting = PGF.Dialog.activePanel.name == "mini" and "" or nil
-            PGF.Dialog:UpdateExpression("", sorting)
+    if MPH.UsesPGF() then
+        if not SyncPGFPanel({}, nil, nil, false) then
+            UpdatePGFExpression("")
+            if not SaveAdvancedFilter(BaseAdvancedFilter(), "reset") then return false end
         end
-
-        local filter = (PGF and PGF.GetAdvancedFilterDefaults and PGF.GetAdvancedFilterDefaults())
-                or C_LFGList.GetAdvancedFilter()
-        filter.difficultyNormal = true
-        filter.difficultyHeroic = true
-        filter.difficultyMythic = true
-        filter.difficultyMythicPlus = true
-        filter.activities = {}
-
-        local ok, err = pcall(function ()
-            if PGF and PGF.SetAdvancedFilter then
-                PGF.SetAdvancedFilter(filter)
-            else
-                C_LFGList.SaveAdvancedFilter(filter)
-            end
-        end)
-        if not ok then
-            MPH.Print("reset: %s", tostring(err))
-            return false
-        end
+    else
+        MirrorPGFState({}, nil, false)
+        if not SaveAdvancedFilter(BaseAdvancedFilter(), "reset") then return false end
     end
 
     local leftover = ReadSearchBox(panel)
@@ -226,32 +299,20 @@ function Presets.Reset()
     return true
 end
 
-local function ApplyRaid(preset, panel)
-    if not MPH.Raids.SyncPGFPanel(preset) then
-        local PGF = MPH.GetPGF()
-        if PGF and PGF.Dialog and PGF.Dialog.activePanel then
-            local sorting = PGF.Dialog.activePanel.name == "mini" and "" or nil
-            PGF.Dialog:UpdateExpression(MPH.Raids.BuildExpression(preset), sorting)
-        end
-    end
-    return true
-end
-
-function Presets.Apply(preset, index)
+function Presets.Apply(preset, index, quiet)
     local panel = LFGListFrame and LFGListFrame.SearchPanel
 
     if not panel or not panel:IsVisible() then
-
         MPH.Print(L["msg.nopanel"])
         UIErrorsFrame:AddMessage(L["msg.nopanel"], 1.0, 0.3, 0.3)
         return false
     end
 
     if MPH.GetPresetKind(preset) == "raid" then
-        ApplyRaid(preset, panel)
+        ApplyRaidFilters(preset)
 
         local wanted = Presets.SearchText(preset)
-        if wanted then
+        if wanted and not quiet then
             if not Presets.Matches(preset, ReadSearchBox(panel)) then
                 if MPH.ShowCopyBox then MPH.ShowCopyBox(preset) end
             elseif MPH.HideCopyBox then
@@ -259,14 +320,13 @@ function Presets.Apply(preset, index)
             end
         end
 
-        local okRaid = pcall(LFGListSearchPanel_DoSearch, panel)
-        if not okRaid then return false end
         MPH.db.activePreset = index
+        local okRaid = pcall(LFGListSearchPanel_DoSearch, panel)
         if MPH.RefreshWindow then MPH.RefreshWindow() end
-        return true
+        return okRaid
     end
 
-    if MPH.NotEmpty(preset.keyText) then
+    if MPH.NotEmpty(preset.keyText) and not quiet then
         local current = ReadSearchBox(panel)
         local wanted = Presets.SearchText(preset)
         if not Presets.Matches(preset, current) then
@@ -280,44 +340,40 @@ function Presets.Apply(preset, index)
         end
     end
 
-    local selected = {}
-    for _, cmID in ipairs(preset.dungeons) do selected[cmID] = true end
+    if not ApplyDungeonFilters(preset) then return false end
 
-    local ratingMin, ratingMax = MPH.GetRatingRange()
-
-    local PGF = MPH.GetPGF()
-    if not SyncPGFPanel(selected, ratingMin, ratingMax) then
-        if PGF and PGF.Dialog and PGF.Dialog.activePanel then
-            local expression = Presets.BuildExpression(preset, ratingMin, ratingMax)
-            local sorting = PGF.Dialog.activePanel.name == "mini" and "" or nil
-            PGF.Dialog:UpdateExpression(expression, sorting)
-            CheckPGFConflict()
-        else
-        end
-
-        local filter = Presets.BuildAdvancedFilter(preset)
-        if ratingMin then filter.minimumRating = ratingMin end
-        local okFilter, filterErr = pcall(function ()
-            if PGF and PGF.SetAdvancedFilter then
-                PGF.SetAdvancedFilter(filter)
-            else
-                C_LFGList.SaveAdvancedFilter(filter)
-            end
-        end)
-        if not okFilter then
-            MPH.Print("filter: %s", tostring(filterErr))
-            return false
-        end
-    end
-
-    local before = panel.totalResults
+    MPH.db.activePreset = index
     local okSearch, searchErr = pcall(LFGListSearchPanel_DoSearch, panel)
     if not okSearch then
         MPH.Print("search: %s", tostring(searchErr))
-        return false
     end
 
-    MPH.db.activePreset = index
     if MPH.RefreshWindow then MPH.RefreshWindow() end
-    return true
+    return okSearch
+end
+
+function Presets.Reapply(quiet)
+    local index = MPH.db.activePreset
+    local preset = index and Presets.Get(index)
+    if not preset or MPH.GetPresetKind(preset) ~= "mplus" then return false end
+    local panel = LFGListFrame and LFGListFrame.SearchPanel
+    if not panel or not panel:IsVisible() then return false end
+    return Presets.Apply(preset, index, quiet)
+end
+
+function Presets.PushToPGF()
+    if not MPH.UsesPGF() then return end
+
+    local index = MPH.db.activePreset
+    local preset = index and Presets.Get(index)
+    if not preset then return end
+
+    local kind = MPH.GetPresetKind(preset)
+    if kind ~= MPH.GetActiveKind() then return end
+
+    if kind == "raid" then
+        ApplyRaidFilters(preset)
+    else
+        ApplyDungeonFilters(preset)
+    end
 end

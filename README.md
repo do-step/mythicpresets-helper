@@ -3,9 +3,6 @@
 Mythic+ group search presets, built from your own progress. One click switches the group
 finder to the dungeons where you actually have a key level to push.
 
-> **Unofficial.** MythicPresets Helper is not affiliated with, endorsed by, or maintained by the author
-> of Premade Groups Filter. It is a separate addon that works alongside it.
-
 ---
 
 ## What it does
@@ -13,16 +10,40 @@ finder to the dungeons where you actually have a key level to push.
 - **Builds presets from your progress.** For every dungeon of the current season it reads your
   best timed run and groups the dungeons by the next keystone level worth pushing. Best +12
   in three dungeons means one preset for +13 covering those three.
-- **Applies a preset in one click.** The dungeon selection goes straight into Premade Groups
-  Filter, so you see the checkboxes tick in its panel, and the search runs immediately.
-- **Fills the rating range.** Optionally sets the M+ rating filter to your own score plus or
-  minus a value you choose (100 by default).
-- **Keeps your own presets.** Edit any automatic preset and it becomes yours: the addon stops
-  regenerating it.
+- **Applies a preset in one click.** The dungeons go straight into the group finder filter and
+  the search runs immediately.
+- **Fills the rating range.** Optionally narrows the search to an M+ rating range around your
+  own score, plus or minus a value you choose (100 by default). Both bounds work.
+- **Raid presets by composition.** Three presets for 2-2-6, 2-3-9 and 2-4-14 keep groups that
+  already have enough players and no more than 2, 3 or 4 players in your armor type.
+- **Finds a group that fits.** The Group fit checkbox keeps Mythic+ groups with room for your
+  party's roles and with Bloodlust present or still possible. The Reset button shows how many
+  groups the active preset hides.
+- **Keeps your own presets.** Automatic presets cannot be edited or deleted, but a copy button
+  turns any of them into a manual preset you can change, and the addon never regenerates it.
+  The New button also works on the raid tab: minimum players, armor type and the most players
+  allowed in that armor.
+- **Teleports you to the dungeon.** The Teleport tab offers, one click each, the dungeon of the
+  group you joined or listed and the dungeon of your own keystone, with the shared cooldown.
+  It also holds the Personal Key to the Arcantina and a random hearthstone from your toys
+  (right-click picks another one).
+- **Opens by itself when it matters.** The window switches to the Teleport tab when you join or
+  list a Mythic+ or Mythic 0 group and when the group fills up, and closes once you enter the
+  dungeon, leave the group or teleport.
+- **Explains group slang.** The Abbreviations tab lists class, ability and Mythic+ slang, in
+  English, Russian and the European languages.
+- **Party chat presets after a key.** Once a key ends, a tab lists the loot of the whole group.
+  One click asks another player in party chat whether they need their item, another sends your
+  thank-you phrase. The thank-you can also go out by itself after a timed key: off by default,
+  the text is set per character.
+- **Keeps Lua errors out of the way.** While a Mythic+ key or a raid boss fight is in progress,
+  the Lua error window of any addon does not pop up. It opens once the key or the fight ends,
+  and chat tells how many errors were hidden. On by default.
 
 ## How to use
 
-1. Open the group finder and search for dungeons. The preset window appears beside it.
+1. Open the group finder (I). The addon window appears beside it, and the presets side tab
+   opens the dungeon search for you.
 2. Click a preset. The dungeons are applied at once.
 3. If the keystone level in the search box does not match, a small box pops up with the text
    ready (`13-13`), selected and focused. Press Ctrl+C, then Ctrl+V into the search box.
@@ -30,8 +51,19 @@ finder to the dungeons where you actually have a key level to push.
 The search box keeps its text between searches, so you type the level once and then switch
 presets freely.
 
-The `MPH` checkbox above the search hides and shows the window. A right-click on it pins the
-window back beside the group finder.
+The `MPH` tab at the bottom right of the group finder hides and shows the window, and a
+right-click on it pins the window back beside the group finder. The window opens by itself on
+the Teleport tab together with the Dungeons & Raids page, unless it is already open; this can be
+turned off in Settings → AddOns → MythicPresets Helper.
+
+The window has side tabs: help, presets, teleport, party chat presets, abbreviations and Rapport (a placeholder for
+upcoming notes on players). The help page opens on the very first launch. Drag the window by
+its title with the left mouse button; Shift + right-click on the title puts it back beside the
+group finder.
+
+Settings → AddOns → MythicPresets Helper has a button for the help page, auto-opening of the
+addon window, of the Teleport tab and of the Party chat presets tab, the automatic thank-you and
+hiding Lua errors during keys and raid boss fights.
 
 ## Why you type the keystone level yourself
 
@@ -58,17 +90,21 @@ applied automatically.
 
 ## Requirements
 
-World of Warcraft Retail, interface 120100 (Midnight). Premade Groups Filter is optional but
-recommended: with it the dungeon selection shows up in its panel and it does the client side
-filtering. Without it MythicPresets Helper drives Blizzard's own advanced filter directly.
+World of Warcraft Retail, interface 120100 (Midnight). No other addons are required.
+
+EllesmereUI is optional too: when it is installed, the addon's windows and tabs follow its
+style. The skin can be turned off for this addon in EllesmereUI options under Blizz UI Enhanced,
+Blizzard Window Skins, Third-Party Addons.
+
+Languages: English, Russian, German, Spanish (Spain and Mexico), French, Italian, Portuguese
+(Brazil), Korean, Simplified and Traditional Chinese. The Abbreviations tab is not available in
+Korean and Chinese yet.
 
 ## License and credits
 
 Released under the MIT License; the full text is in `LICENSE`.
 
-The addon reads Blizzard's own data at runtime and carries no code from other addons. It works
-best alongside [Premade Groups Filter](https://github.com/0xbs/premade-groups-filter), which is
-a separate project by Bernhard Saumweber.
+The addon reads Blizzard's own data at runtime and carries no code from other addons.
 
 ## Support
 Support the creator or like this post:
@@ -81,31 +117,67 @@ https://t.me/p_y_c_h/3
 Пресеты поиска групп M+, собранные из вашего прогресса. Один клик переключает поиск на те
 подземелья, где вам есть что поднимать.
 
-> **Неофициальное дополнение.** Не связано с автором Premade Groups Filter и не поддерживается им.
-
 ## Что делает
 
 - **Собирает пресеты из прогресса.** По каждому подземелью сезона берёт лучшее прохождение в
   тайм и группирует подземелья по следующему уровню ключа. Три подземелья с лучшим +12 дадут
   один пресет на +13.
-- **Применяет пресет в один клик.** Набор подземелий уходит прямо в Premade Groups Filter:
-  галочки проставляются в его панели, поиск запускается сразу.
-- **Подставляет диапазон рейтинга.** По желанию заполняет фильтр M+ рейтинга вашим счётом
-  плюс-минус заданное значение (по умолчанию 100).
-- **Не трогает ваши пресеты.** Измените любой автоматический, и он станет вашим: аддон
-  перестанет его обновлять.
+- **Применяет пресет в один клик.** Подземелья сразу уходят в фильтр поиска групп, поиск
+  запускается сам.
+- **Подставляет диапазон рейтинга.** По желанию сужает поиск до диапазона M+ рейтинга вокруг
+  вашего, плюс-минус заданное значение (по умолчанию 100). Работают обе границы.
+- **Рейдовые пресеты по составу.** Три пресета на 2-2-6, 2-3-9 и 2-4-14 оставляют группы, где уже
+  набрано достаточно игроков и в вашем типе брони не больше 2, 3 или 4.
+- **Ищет подходящую группу.** Галочка «Подходящая группа» оставляет группы M+, где есть места под
+  роли вашей группы и уже есть или ещё может появиться БЛ. Кнопка «Сброс» показывает, сколько
+  групп скрыл активный пресет.
+- **Не трогает ваши пресеты.** Автоматические пресеты нельзя изменить или удалить, но кнопка
+  копирования превращает любой из них в ручной: его можно менять, и аддон его не обновляет.
+  Кнопка «Новый» работает и на вкладке рейдов: минимум игроков, тип брони и сколько игроков в
+  этой броне допускается.
+- **Телепортирует в подземелье.** На вкладке «Телепорт» в один клик: подземелье группы, в
+  которую вы вступили или которую выставили, и подземелье вашего ключа, с общей перезарядкой.
+  Там же ключ в Аркантину и случайный камень возвращения из ваших игрушек (правый клик
+  выбирает другой).
+- **Открывается само, когда нужно.** Окно переходит на вкладку «Телепорт», когда вы вступаете
+  в группу M+ или M0 или выставляете её и когда группа набрана, и закрывается при входе в
+  подземелье, выходе из группы или после телепорта.
+- **Расшифровывает сленг.** Вкладка «Сокращения»: сленг классов, умений и M+ на русском,
+  английском и европейских языках.
+- **Пресеты группового чата после ключа.** Когда ключ завершён, вкладка показывает добычу всей
+  группы. Клик по чужому предмету спрашивает в чате группы, нужен ли он владельцу, ещё один клик
+  отправляет благодарность. Благодарность может уходить и сама после ключа в тайм: по умолчанию
+  выключено, текст задаётся для каждого персонажа.
+- **Не отвлекает ошибками Lua.** Пока идёт ключ M+ или бой с рейдовым боссом, окно ошибок Lua
+  от любых аддонов не всплывает. Оно откроется после завершения ключа или боя, а в чате будет
+  число скрытых ошибок. Включено по умолчанию.
 
 ## Как пользоваться
 
-1. Откройте поиск групп и перейдите к подземельям. Окно пресетов появится рядом.
+1. Откройте поиск групп (I). Окно аддона появится рядом, а боковая вкладка пресетов сама
+   откроет поиск подземелий.
 2. Щёлкните пресет. Подземелья применятся сразу.
 3. Если уровень ключа в строке поиска не совпадает, всплывёт окошко с готовым текстом
    (`13-13`), выделенным и в фокусе. Ctrl+C, затем Ctrl+V в строку поиска.
 
 Строка поиска сохраняет текст между поисками, так что уровень набирается один раз.
 
-Галочка `MPH` над поиском скрывает и показывает окно. Правый клик по ней возвращает окно на
-место рядом с поиском групп.
+Вкладка `MPH` в правом нижнем углу поиска групп скрывает и показывает окно, правый клик по
+ней возвращает окно на место рядом с поиском. Само окно открывается автоматически на вкладке
+«Телепорт» вместе со страницей «Подземелья и рейды», если оно ещё не открыто, это отключается в
+«Настройки → AddOns → MythicPresets Helper».
+
+У окна боковые вкладки: «Как пользоваться», пресеты, «Телепорт», «Пресеты группового чата», «Сокращения» и Rapport
+(заготовка под заметки по игрокам). Инструкция открывается при самом первом запуске. Окно
+перетаскивается левой кнопкой мыши за заголовок, Shift + правый клик по заголовку возвращает
+его на место рядом с поиском групп.
+
+В «Настройки → AddOns → MythicPresets Helper» есть кнопка инструкции, автооткрытие окна
+аддона, вкладок «Телепорт» и «Пресеты группового чата», автоматическая благодарность группе и
+скрытие ошибок Lua в ключе и в бою с рейдовым боссом.
+
+С EllesmereUI окна и вкладки аддона выглядят в его стиле. Скин отключается для этого аддона в
+настройках EllesmereUI: Blizz UI Enhanced, Blizzard Window Skins, Third-Party Addons.
 
 ## Почему уровень ключа вводится вручную
 
@@ -129,6 +201,12 @@ https://t.me/p_y_c_h/3
 | `/mph help` | список команд |
 
 `/mythicpresets` — полная форма команды `/mph`.
+
+## Языки
+
+Английский, русский, немецкий, испанский (Испания и Мексика), французский, итальянский,
+португальский (Бразилия), корейский, упрощённый и традиционный китайский. Вкладки
+«Сокращения» на корейском и китайском пока нет.
 
 ## Лицензия
 
