@@ -60,6 +60,28 @@ function Loot.EquipLoc(link)
     return nil
 end
 
+local function IsMountOrPet(link)
+    local ok, _, _, _, _, _, classID, subClassID = pcall(C_Item.GetItemInfoInstant, link)
+    if not ok then return false end
+    if classID == Enum.ItemClass.Battlepet then return true end
+    return classID == Enum.ItemClass.Miscellaneous
+        and (subClassID == Enum.ItemMiscellaneousSubclass.Mount or subClassID == Enum.ItemMiscellaneousSubclass.CompanionPet)
+end
+
+function Loot.CanTrade(link)
+    local ok, warbound = pcall(C_Item.IsItemBindToAccountUntilEquip, link)
+    if ok and warbound then return false end
+    local bindType = select(14, C_Item.GetItemInfo(link))
+    if bindType == nil then return nil end
+    if bindType == Enum.ItemBind.None or bindType == Enum.ItemBind.OnEquip or bindType == Enum.ItemBind.OnUse then
+        return true
+    end
+    if bindType == Enum.ItemBind.OnAcquire and (SLOT_WORD[Loot.EquipLoc(link) or ""] or IsMountOrPet(link)) then
+        return true
+    end
+    return false
+end
+
 function Loot.Message(item)
     local name = Ambiguate(item.player, "short")
     local slot = SLOT_WORD[Loot.EquipLoc(item.link) or ""]
@@ -104,7 +126,7 @@ function Loot.CanSend()
 end
 
 function Loot.Ask(item)
-    if item.own or not Loot.CanSend() then return end
+    if item.own or Loot.CanTrade(item.link) == false or not Loot.CanSend() then return end
     if MPH.SendParty(Loot.Message(item), "loot") then
         item.asked = true
         Refresh()
@@ -135,11 +157,6 @@ local function OnLoot(_, itemID, link, _, player, class)
     if not link or not player then return end
     if IsSecret(class) then class = nil end
 
-    local ok, warbound = pcall(C_Item.IsItemBindToAccountUntilEquip, link)
-    if ok and warbound then
-        MPH.Debug("loot: %s skipped, warbound", link)
-        return
-    end
     MPH.Debug("loot: %s -> %s", link, player)
     Add(link, Ambiguate(player, "none"), class)
 end

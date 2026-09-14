@@ -8,6 +8,8 @@ local ROW_HEIGHT = 40
 local ROW_GAP = 2
 local ICON_SIZE = 32
 local THANKS_HEIGHT = 34
+local SECTION_GAP = 10
+local HEADER_HEIGHT = 20
 
 MPH.LootPage = {}
 
@@ -25,19 +27,25 @@ local function PlayerName(item)
     return color and color:WrapTextInColorCode(name) or name
 end
 
+local function IsUntradable(item)
+    return MPH.Loot.CanTrade(item.link) == false
+end
+
 local function InfoText(item)
     local details = {}
-    local level = C_Item.GetDetailedItemLevelInfo(item.link)
-    if level then table.insert(details, tostring(level)) end
     local equipLoc = MPH.Loot.EquipLoc(item.link)
     local slot = equipLoc and _G[equipLoc]
-    if type(slot) == "string" and slot ~= "" then table.insert(details, slot) end
+    if type(slot) == "string" and slot ~= "" then
+        local level = C_Item.GetDetailedItemLevelInfo(item.link)
+        if level then table.insert(details, tostring(level)) end
+        table.insert(details, slot)
+    end
     local suffix = #details > 0 and GRAY_FONT_COLOR:WrapTextInColorCode(", " .. table.concat(details, ", ")) or ""
 
     if item.own then
         return GRAY_FONT_COLOR:WrapTextInColorCode(L["loot.own"]) .. suffix
     end
-    if item.asked then
+    if item.asked and not IsUntradable(item) then
         return string.format(L["loot.status"], GREEN_FONT_COLOR:WrapTextInColorCode(L["loot.asked"]),
             PlayerName(item)) .. suffix
     end
@@ -53,6 +61,8 @@ local function ShowRowTooltip(self)
     GameTooltip:AddLine(" ")
     if item.own then
         AddGrayLine(L["loot.owndesc"])
+    elseif IsUntradable(item) then
+        AddGrayLine(L["loot.untradabledesc"])
     else
         AddGrayLine(L["loot.message"])
         AddGrayLine(MPH.Loot.Message(item))
@@ -76,10 +86,9 @@ local function ShowEditTooltip(self)
     GameTooltip:Show()
 end
 
-local function CreateRow(index)
+local function CreateRow()
     local row = CreateFrame("Button", nil, page.child)
     row:SetSize(ROW_WIDTH, ROW_HEIGHT)
-    row:SetPoint("TOPLEFT", page.child, "TOPLEFT", 0, -(index - 1) * (ROW_HEIGHT + ROW_GAP))
 
     row.Highlight = row:CreateTexture(nil, "HIGHLIGHT")
     row.Highlight:SetAllPoints()
@@ -118,8 +127,9 @@ local function FillRow(row, item)
     row.item = item
     local _, _, _, _, icon = C_Item.GetItemInfoInstant(item.link)
     row.Icon:SetTexture(icon)
-    row.Icon:SetDesaturated(item.own)
-    row.Highlight:SetAlpha(item.own and 0 or 1)
+    local muted = item.own or IsUntradable(item)
+    row.Icon:SetDesaturated(muted)
+    row.Highlight:SetAlpha(muted and 0 or 1)
 
     local name, _, quality = C_Item.GetItemInfo(item.link)
     if name then
@@ -141,6 +151,15 @@ local function FillRow(row, item)
     row:Show()
 end
 
+local function PlaceRow(index, y, item)
+    rows[index] = rows[index] or CreateRow()
+    local row = rows[index]
+    row:ClearAllPoints()
+    row:SetPoint("TOPLEFT", page.child, "TOPLEFT", 0, -y)
+    FillRow(row, item)
+    return y + ROW_HEIGHT + ROW_GAP
+end
+
 function MPH.LootPage.Refresh()
     if not page or not page:IsVisible() then return end
 
@@ -155,16 +174,35 @@ function MPH.LootPage.Refresh()
     end
 
     local items = MPH.Loot.Items()
-    for index, item in ipairs(items) do
-        rows[index] = rows[index] or CreateRow(index)
-        FillRow(rows[index], item)
+    local tradable, untradable = {}, {}
+    for _, item in ipairs(items) do
+        table.insert(IsUntradable(item) and untradable or tradable, item)
     end
-    for index = #items + 1, #rows do
+
+    local count, y = 0, 0
+    for _, item in ipairs(tradable) do
+        count = count + 1
+        y = PlaceRow(count, y, item)
+    end
+
+    page.Untradable:SetShown(#untradable > 0)
+    if #untradable > 0 then
+        if #tradable > 0 then y = y + SECTION_GAP end
+        page.Untradable:ClearAllPoints()
+        page.Untradable:SetPoint("TOPLEFT", page.child, "TOPLEFT", 4, -y)
+        y = y + HEADER_HEIGHT
+        for _, item in ipairs(untradable) do
+            count = count + 1
+            y = PlaceRow(count, y, item)
+        end
+    end
+
+    for index = count + 1, #rows do
         rows[index].item = nil
         rows[index]:Hide()
     end
 
-    page.child:SetHeight(math.max(1, #items * (ROW_HEIGHT + ROW_GAP)))
+    page.child:SetHeight(math.max(1, y))
     page.Empty:SetShown(#items == 0)
     page.Empty:SetText(L[dungeon and "loot.none" or "loot.empty"])
 end
@@ -223,6 +261,10 @@ local function Build(container)
     page.child = CreateFrame("Frame", nil, scroll)
     page.child:SetSize(ROW_WIDTH, 1)
     scroll:SetScrollChild(page.child)
+
+    page.Untradable = page.child:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    page.Untradable:SetText(L["loot.untradable"])
+    page.Untradable:Hide()
 
     page.Empty = page:CreateFontString(nil, "ARTWORK", "GameFontDisable")
     page.Empty:SetPoint("TOP", scroll, "TOP", 0, -40)

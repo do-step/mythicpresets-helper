@@ -15,8 +15,33 @@ local frame, scrollChild
 local rows = {}
 local wanted = false
 local held, pendingPage = false, nil
+local onPage = false
+local hooks = {}
 
 local pages = {}
+
+local function Describe()
+    return string.format("shown %s, wanted %s, held %s, onPage %s, page %s, PVEFrame %s, finder %s",
+        tostring(frame ~= nil and frame:IsShown()), tostring(wanted), tostring(held), tostring(onPage),
+        tostring(MPH.IsGroupFinderPage()), tostring(PVEFrame ~= nil and PVEFrame:IsShown()),
+        tostring(GroupFinderFrame ~= nil and GroupFinderFrame:IsShown()))
+end
+
+local function Guard(source, fn, ...)
+    local ok, err = pcall(fn, ...)
+    if ok then return end
+    MPH.Debug("window error (%s): %s", source, tostring(err))
+    geterrorhandler()(err)
+end
+
+function MPH.DescribeWindow()
+    local special = false
+    for _, name in ipairs(UISpecialFrames) do
+        if name == "MythicPresetsHelperFrame" then special = true end
+    end
+    return string.format("%s, special %s, hooks %s", Describe(), tostring(special),
+        #hooks > 0 and table.concat(hooks, ", ") or "-")
+end
 
 local ANCHOR_GAP = 12
 local RIGHT_FRAMES = {
@@ -677,6 +702,7 @@ local function CreateWindow()
     frame.ReloadButton:SetNormalTexture("Interface\\Buttons\\UI-RefreshButton")
     frame.ReloadButton:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square", "ADD")
     frame.ReloadButton:SetScript("OnClick", function ()
+        MPH.Debug("window: reload, %s", Describe())
         ReloadUI()
     end)
     frame.ReloadButton:SetScript("OnEnter", function (self)
@@ -685,6 +711,27 @@ local function CreateWindow()
         GameTooltip:Show()
     end)
     frame.ReloadButton:SetScript("OnLeave", GameTooltip_Hide)
+
+    local function DebugButton(anchor, texture, onClick)
+        local button = CreateFrame("Button", nil, frame)
+        button:SetSize(16, 16)
+        button:SetPoint("LEFT", anchor, "RIGHT", 4, 0)
+        button:SetNormalTexture(texture)
+        button:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square", "ADD")
+        button:SetScript("OnClick", onClick)
+        button:Hide()
+        return button
+    end
+
+    frame.DebugOffButton = DebugButton(frame.ReloadButton, "Interface\\Buttons\\UI-StopButton", function ()
+        MPH.SetDebug(false)
+    end)
+    frame.ProbeButton = DebugButton(frame.DebugOffButton, "Interface\\Icons\\INV_Misc_Spyglass_03", function ()
+        MPH.RunProbe()
+    end)
+    frame.ClearLogButton = DebugButton(frame.ProbeButton, "Interface\\Buttons\\UI-GroupLoot-Pass-Up", function ()
+        MPH.ClearLog()
+    end)
 
     local index = 0
     for _, page in ipairs(pages) do
@@ -706,20 +753,35 @@ local function CreateWindow()
             MPH.db.window.onboarded = true
             key = key or "help"
         end
-        MPH.SelectWindowPage(key or "presets")
-        MPH.RefreshFinderTab()
+        MPH.Debug("window: shown, page %s", tostring(key or "presets"))
+        Guard("on show", function ()
+            MPH.SelectWindowPage(key or "presets")
+            MPH.RefreshDebugButtons()
+            MPH.RefreshFinderTab()
+        end)
     end)
     frame:HookScript("OnHide", function ()
+        MPH.Debug("window: hidden, wanted %s, held %s", tostring(wanted), tostring(held))
         wanted = false
-        MPH.HideCopyBox()
-        if held then
-            held = false
-            MPH.Teleport.Dismiss()
-        end
-        MPH.RefreshFinderTab()
+        Guard("on hide", function ()
+            MPH.HideCopyBox()
+            if held then
+                held = false
+                MPH.Teleport.Dismiss()
+            end
+            MPH.RefreshFinderTab()
+        end)
     end)
 
     tinsert(UISpecialFrames, "MythicPresetsHelperFrame")
+end
+
+function MPH.RefreshDebugButtons()
+    if not frame then return end
+    local shown = MPH.db.debug and true or false
+    frame.DebugOffButton:SetShown(shown)
+    frame.ProbeButton:SetShown(shown)
+    frame.ClearLogButton:SetShown(shown)
 end
 
 function MPH.ToggleWindow()
@@ -727,16 +789,19 @@ function MPH.ToggleWindow()
         MPH.Print(L["msg.notready"])
         return
     end
-    if frame:IsShown() then
-        frame:Hide()
-    else
-        wanted = true
-        MPH.RestoreWindowPosition()
-        MPH.Progress.RebuildIfChanged()
-        MPH.RefreshWindow()
-        frame:Show()
-    end
-    MPH.RefreshFinderTab()
+    MPH.Debug("window: toggle, %s", Describe())
+    Guard("toggle", function ()
+        if frame:IsShown() then
+            frame:Hide()
+        else
+            wanted = true
+            MPH.RestoreWindowPosition()
+            MPH.Progress.RebuildIfChanged()
+            MPH.RefreshWindow()
+            frame:Show()
+        end
+        MPH.RefreshFinderTab()
+    end)
 end
 
 function MPH.ShowWindowPage(key)
@@ -744,6 +809,7 @@ function MPH.ShowWindowPage(key)
         MPH.Print(L["msg.notready"])
         return
     end
+    MPH.Debug("window: show page %s, %s", tostring(key), Describe())
     wanted = true
     if frame:IsShown() then
         MPH.SelectWindowPage(key)
@@ -759,6 +825,7 @@ end
 
 function MPH.OpenWindowOn(key, hold)
     if not frame then return end
+    MPH.Debug("window: open on %s, hold %s, %s", tostring(key), tostring(hold), Describe())
     if hold then held = true end
     if frame:IsShown() then
         MPH.SelectWindowPage(key)
@@ -773,17 +840,14 @@ end
 
 function MPH.ReleaseWindow()
     if not held then return end
+    MPH.Debug("window: release, %s", Describe())
     held = false
     if frame and frame:IsShown() and not wanted then
         frame:Hide()
     end
 end
 
-local onPage = false
-
-local function UpdateVisibility()
-    if not frame then return end
-
+local function ApplyVisibility()
     local page = MPH.IsGroupFinderPage()
     if onPage and not page then
         wanted = false
@@ -808,40 +872,46 @@ local function UpdateVisibility()
     MPH.RefreshFinderTab()
 end
 
+local function UpdateVisibility(source)
+    if not frame then return end
+    local before = frame:IsShown()
+    Guard(source, ApplyVisibility)
+    MPH.Debug("window (%s): was %s, %s", tostring(source), tostring(before), Describe())
+end
+
 MPH.UpdateWindowVisibility = UpdateVisibility
 
 local updateQueued = false
-local function QueueVisibilityUpdate()
+local function QueueVisibilityUpdate(source)
     if updateQueued then return end
     updateQueued = true
     C_Timer.After(0, function ()
         updateQueued = false
-        UpdateVisibility()
+        UpdateVisibility(source .. ", queued")
     end)
+end
+
+local function HookVisibility(target, name)
+    if not target then return end
+    target:HookScript("OnShow", function () UpdateVisibility(name .. " show") end)
+    target:HookScript("OnHide", function () QueueVisibilityUpdate(name .. " hide") end)
+    table.insert(hooks, name)
 end
 
 table.insert(MPH.onLogin, function ()
     CreateWindow()
 
     if LFGListFrame then
-        for _, panel in ipairs({ LFGListFrame.SearchPanel, LFGListFrame.ApplicationViewer }) do
-            panel:HookScript("OnShow", UpdateVisibility)
-            panel:HookScript("OnHide", QueueVisibilityUpdate)
-        end
+        HookVisibility(LFGListFrame.SearchPanel, "search")
+        HookVisibility(LFGListFrame.ApplicationViewer, "viewer")
     end
 
     local entryEvents = CreateFrame("Frame")
     entryEvents:RegisterEvent("LFG_LIST_ACTIVE_ENTRY_UPDATE")
-    entryEvents:SetScript("OnEvent", UpdateVisibility)
-    if PVEFrame then
-        PVEFrame:HookScript("OnShow", UpdateVisibility)
-        PVEFrame:HookScript("OnHide", QueueVisibilityUpdate)
-    end
+    entryEvents:SetScript("OnEvent", function (_, event) UpdateVisibility(event) end)
 
-    if GroupFinderFrame then
-        GroupFinderFrame:HookScript("OnShow", UpdateVisibility)
-        GroupFinderFrame:HookScript("OnHide", QueueVisibilityUpdate)
-    end
+    HookVisibility(PVEFrame, "PVEFrame")
+    HookVisibility(GroupFinderFrame, "finder")
 
     if LFGListCategorySelection_SelectCategory then
         hooksecurefunc("LFGListCategorySelection_SelectCategory", function ()
@@ -851,9 +921,9 @@ table.insert(MPH.onLogin, function ()
 
     if LFGListSearchPanel_SetCategory then
         hooksecurefunc("LFGListSearchPanel_SetCategory", function ()
-            UpdateVisibility()
+            UpdateVisibility("set category")
         end)
     end
 
-    UpdateVisibility()
+    UpdateVisibility("login")
 end)

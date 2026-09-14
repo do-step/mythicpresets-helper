@@ -18,6 +18,7 @@ end
 MPH.DB_VERSION = 1
 MPH.MAX_KEY_AHEAD = 5
 MPH.LAYOUT_VERSION = 1
+MPH.LOG_LIMIT = 500
 
 local DB_DEFAULTS = {
     version = MPH.DB_VERSION,
@@ -72,15 +73,44 @@ local CHAR_DEFAULTS = {
     },
 }
 
+local probing = false
+
+local function StripColors(text)
+    text = text:gsub("|c%x%x%x%x%x%x%x%x", "")
+    text = text:gsub("|r", "")
+    return text
+end
+
+function MPH.Log(msg)
+    local log = MythicPresetsHelperLog
+    if type(log) ~= "table" or type(log.lines) ~= "table" then return end
+    local lines = log.lines
+    lines[#lines + 1] = date("%m-%d %H:%M:%S") .. " " .. StripColors(tostring(msg))
+    while #lines > MPH.LOG_LIMIT do
+        table.remove(lines, 1)
+    end
+end
+
 function MPH.Print(msg, ...)
     if select("#", ...) > 0 then msg = string.format(msg, ...) end
+    if probing then
+        MPH.Log(msg)
+        return
+    end
     DEFAULT_CHAT_FRAME:AddMessage(MPH.PREFIX .. tostring(msg))
 end
 
 function MPH.Debug(msg, ...)
     if not MPH.db or not MPH.db.debug then return end
     if select("#", ...) > 0 then msg = string.format(msg, ...) end
-    DEFAULT_CHAT_FRAME:AddMessage(MPH.PREFIX .. "|cff888888" .. tostring(msg) .. "|r")
+    MPH.Log(msg)
+end
+
+local function LogSession(reason)
+    local version, build = GetBuildInfo()
+    local addon = C_AddOns and C_AddOns.GetAddOnMetadata and C_AddOns.GetAddOnMetadata(ADDON, "Version")
+    MPH.Log(string.format("---- %s, MPH %s, client %s.%s, %s-%s ----", reason, tostring(addon),
+        tostring(version), tostring(build), tostring(UnitName("player")), tostring(GetRealmName())))
 end
 
 function MPH.SendParty(text, tag)
@@ -260,6 +290,8 @@ local function InitDB()
     end
     MPH.FillDefaults(MythicPresetsHelperDB, DB_DEFAULTS)
     MPH.db = MythicPresetsHelperDB
+    if type(MythicPresetsHelperLog) ~= "table" then MythicPresetsHelperLog = {} end
+    if type(MythicPresetsHelperLog.lines) ~= "table" then MythicPresetsHelperLog.lines = {} end
     MythicPresetsHelperCharDB = MPH.FillDefaults(MythicPresetsHelperCharDB or {}, CHAR_DEFAULTS)
     MPH.charDB = MythicPresetsHelperCharDB
 end
@@ -276,9 +308,13 @@ eventFrame:SetScript("OnEvent", function (_, event, arg1)
             MPH.db.window.layout = MPH.LAYOUT_VERSION
             MPH.db.window.point = nil
         end
+        if MPH.db.debug then LogSession("login") end
         for _, fn in ipairs(MPH.onLogin) do
             local ok, err = pcall(fn)
-            if not ok then MPH.Print("init: %s", tostring(err)) end
+            if not ok then
+                MPH.Print("init: %s", tostring(err))
+                MPH.Debug("init: %s", tostring(err))
+            end
         end
     end
 end)
@@ -298,6 +334,7 @@ function MPH.Probe()
     MPH.Print("client build: %s / interface %s", (select(1, GetBuildInfo())), tostring(select(4, GetBuildInfo())))
     MPH.Print("PGF installed: %s", tostring(MPH.HasPGF()))
     MPH.Print("finder tab: %s", MPH.DescribeFinderTab and MPH.DescribeFinderTab() or "module not loaded")
+    MPH.Print("window: %s", MPH.DescribeWindow and MPH.DescribeWindow() or "module not loaded")
     local pending, tries = MPH.Progress.GetPending()
     MPH.Print("score: %d, last seen %s, pending rebuild %s (attempt %d)",
         MPH.GetPlayerScore(), tostring(MPH.db.lastScore), tostring(pending), tries)
@@ -403,6 +440,32 @@ function MPH.Probe()
     MPH.Print("---- end probe ----")
 end
 
+function MPH.RunProbe()
+    probing = true
+    local ok, err = pcall(MPH.Probe)
+    probing = false
+    if ok then
+        MPH.Print("probe written to log, /reload to save")
+    else
+        MPH.Log("probe failed: " .. tostring(err))
+        MPH.Print("probe: %s", tostring(err))
+    end
+end
+
+function MPH.SetDebug(enabled)
+    MPH.db.debug = enabled and true or false
+    LogSession(MPH.db.debug and "debug on" or "debug off")
+    MPH.Print("debug: %s", tostring(MPH.db.debug))
+    if MPH.RefreshDebugButtons then MPH.RefreshDebugButtons() end
+end
+
+function MPH.ClearLog()
+    if type(MythicPresetsHelperLog) ~= "table" then return end
+    MythicPresetsHelperLog.lines = {}
+    LogSession("cleared")
+    MPH.Print("log cleared, /reload to save")
+end
+
 local HELP_LINES = {
     { "/mph",            "help.toggle" },
     { "/mph probe",      "help.probe"  },
@@ -422,10 +485,11 @@ SLASH_MYTHICPRESETSHELPER2 = "/mythicpresets"
 SlashCmdList["MYTHICPRESETSHELPER"] = function (msg)
     local cmd, rest = (msg or ""):lower():match("^%s*(%S*)%s*(.-)%s*$")
     if cmd == "probe" then
-        MPH.Probe()
+        MPH.RunProbe()
     elseif cmd == "debug" then
-        MPH.db.debug = not MPH.db.debug
-        MPH.Print("debug: %s", tostring(MPH.db.debug))
+        MPH.SetDebug(not MPH.db.debug)
+    elseif cmd == "clearlog" then
+        MPH.ClearLog()
     elseif cmd == "reset" then
         MPH.db.window.point = nil
         MPH.db.window.x = 0

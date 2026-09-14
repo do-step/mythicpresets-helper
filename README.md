@@ -34,7 +34,8 @@ finder to the dungeons where you actually have a key level to push.
   English, Russian and the European languages.
 - **Party chat presets after a key.** Once a key ends, a tab lists the loot of the whole group.
   One click asks another player in party chat whether they need their item, another sends your
-  thank-you phrase. The thank-you can also go out by itself after a timed key: off by default,
+  thank-you phrase. Items that can't be traded, like crafting reagents, are listed separately
+  and grayed out. The thank-you can also go out by itself after a timed key: off by default,
   the text is set per character.
 - **Keeps Lua errors out of the way.** While a Mythic+ key or a raid boss fight is in progress,
   the Lua error window of any addon does not pop up. It opens once the key or the fight ends,
@@ -146,7 +147,8 @@ https://t.me/p_y_c_h/3
   английском и европейских языках.
 - **Пресеты группового чата после ключа.** Когда ключ завершён, вкладка показывает добычу всей
   группы. Клик по чужому предмету спрашивает в чате группы, нужен ли он владельцу, ещё один клик
-  отправляет благодарность. Благодарность может уходить и сама после ключа в тайм: по умолчанию
+  отправляет благодарность. Предметы, которые нельзя передать, например материалы для ремесла,
+  показаны отдельно и серым. Благодарность может уходить и сама после ключа в тайм: по умолчанию
   выключено, текст задаётся для каждого персонажа.
 - **Не отвлекает ошибками Lua.** Пока идёт ключ M+ или бой с рейдовым боссом, окно ошибок Lua
   от любых аддонов не всплывает. Оно откроется после завершения ключа или боя, а в чате будет

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.1
+
+- Loot that can't be traded is listed separately and grayed out.
+- Warbound loot is listed too.
+- Item level is shown only for gear.
+
 ## 0.2.0
 
 - Square side tabs on the preset window: help, presets, teleport, party chat presets,
