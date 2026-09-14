@@ -10,6 +10,8 @@ local BOTTOM_MARGIN = 12
 local GCD_THRESHOLD = 2
 local TICK = 1
 local TOY_ID = 253629
+local LOADING_ALPHA = 0.4
+local FADE_DURATION = 0.3
 
 local IsSecret = issecretvalue or function () return false end
 
@@ -135,17 +137,32 @@ local function UpdateStone()
         PlaceButtons()
     end
 
-    stoneRow.Icon:SetDesaturated(not id)
-    if not id then
-        stoneRow.Name:SetTextColor(0.6, 0.6, 0.6)
-        stoneRow.Unknown:SetText(L["teleport.nostonedesc"])
-        stoneRow.Unknown:SetTextColor(GRAY_FONT_COLOR:GetRGB())
-        return
+    local loading = MPH.Hearthstone.IsLoading()
+    if loading ~= stoneRow.loading then
+        stoneRow.Reveal:Stop()
+        stoneRow.Icon:SetAlpha(loading and 0 or 1)
+        stoneRow.Base:SetAlpha(loading and LOADING_ALPHA or 0)
+        if stoneRow.loading and not loading then stoneRow.Reveal:Play() end
+        stoneRow.loading = loading
     end
 
-    stoneRow.Name:SetTextColor(1, 0.82, 0)
-    stoneRow.Unknown:SetText(StatusText(GetItemRemaining(id), GetBindLocation()))
-    stoneRow.Unknown:SetTextColor(0.8, 0.8, 0.8)
+    stoneRow.Icon:SetDesaturated(not id)
+    if id then
+        stoneRow.Name:SetTextColor(1, 0.82, 0)
+    else
+        stoneRow.Name:SetTextColor(0.6, 0.6, 0.6)
+    end
+
+    if loading then
+        stoneRow.Unknown:SetText(L["teleport.stonesearch"])
+        stoneRow.Unknown:SetTextColor(GRAY_FONT_COLOR:GetRGB())
+    elseif not id then
+        stoneRow.Unknown:SetText(L["teleport.nostonedesc"])
+        stoneRow.Unknown:SetTextColor(GRAY_FONT_COLOR:GetRGB())
+    else
+        stoneRow.Unknown:SetText(StatusText(GetItemRemaining(id), GetBindLocation()))
+        stoneRow.Unknown:SetTextColor(0.8, 0.8, 0.8)
+    end
 end
 
 local function UpdateState()
@@ -376,6 +393,26 @@ local function BuildStoneRow()
     stoneRow.Label:SetText(L["teleport.stone"])
     stoneRow.Name:SetFontObject("GameFontNormal")
     stoneRow.Unknown:SetWordWrap(false)
+
+    stoneRow.Base = stoneRow.Hit:CreateTexture(nil, "ARTWORK", nil, -1)
+    stoneRow.Base:SetAllPoints(stoneRow.Icon)
+    stoneRow.Base:SetTexCoord(0.07, 0.93, 0.07, 0.93)
+    stoneRow.Base:SetTexture(C_Item.GetItemIconByID(MPH.Hearthstone.ITEM))
+    stoneRow.Base:SetAlpha(0)
+    MPH.SkinIcon(stoneRow.Base)
+
+    stoneRow.Reveal = stoneRow.Hit:CreateAnimationGroup()
+    local show = stoneRow.Reveal:CreateAnimation("Alpha")
+    show:SetTarget(stoneRow.Icon)
+    show:SetFromAlpha(0)
+    show:SetToAlpha(1)
+    show:SetDuration(FADE_DURATION)
+    local hide = stoneRow.Reveal:CreateAnimation("Alpha")
+    hide:SetTarget(stoneRow.Base)
+    hide:SetFromAlpha(LOADING_ALPHA)
+    hide:SetToAlpha(0)
+    hide:SetDuration(FADE_DURATION)
+
     LayoutName(stoneRow, false)
     stoneRow:Show()
     table.insert(allRows, stoneRow)
@@ -451,6 +488,7 @@ local function Build(container)
         UpdateState()
     end)
     page:HookScript("OnShow", function ()
+        MPH.Hearthstone.Rescan()
         MPH.Hearthstone.Next()
         MPH.TeleportPage.Refresh()
     end)

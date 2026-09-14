@@ -1,9 +1,9 @@
 ## Interface: 120100
 ## Title: MythicPresets Helper
-## Version: 0.2.0
+## Version: 0.2.1
 ## IconTexture: 525134
 ## Author: Pych
-## SavedVariables: MythicPresetsHelperDB
+## SavedVariables: MythicPresetsHelperDB, MythicPresetsHelperLog
 ## SavedVariablesPerCharacter: MythicPresetsHelperCharDB
 ## OptionalDeps: PremadeGroupsFilter, EllesmereUI
 ## X-Website: https://github.com/do-step/mythicpresets-helper
