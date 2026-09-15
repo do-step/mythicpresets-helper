@@ -114,7 +114,12 @@ local function CreateRow()
 
     row:RegisterForClicks("LeftButtonUp")
     row:SetScript("OnClick", function (self)
-        if not self.item or self.item.own then return end
+        if not self.item then return end
+        if IsModifiedClick() then
+            HandleModifiedItemClick(self.item.link)
+            return
+        end
+        if self.item.own then return end
         MPH.Loot.Ask(self.item)
         if GameTooltip:IsOwned(self) then ShowRowTooltip(self) end
     end)

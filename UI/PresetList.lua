@@ -723,7 +723,7 @@ local function CreateWindow()
         return button
     end
 
-    frame.DebugOffButton = DebugButton(frame.ReloadButton, "Interface\\Buttons\\UI-StopButton", function ()
+    frame.DebugOffButton = DebugButton(frame.ReloadButton, "Interface\\HelpFrame\\HelpIcon-Bug", function ()
         MPH.SetDebug(false)
     end)
     frame.ProbeButton = DebugButton(frame.DebugOffButton, "Interface\\Icons\\INV_Misc_Spyglass_03", function ()

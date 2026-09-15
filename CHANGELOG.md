@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.2
+
+- Loot tab: Ctrl+click tries an item on, Shift+click links it in chat.
+- Hearthstone on the teleport tab: while your toys load it shows the regular Hearthstone dimmed
+  with a "Looking for a hearthstone" note, then fades into the stone it picked. Picking another
+  stone with right-click fades between the icons too.
+- Debug log: `/mph debug` now writes to the addon SavedVariables instead of the chat, `/mph probe`
+  goes there as well and `/mph clearlog` empties it. While debugging, the window title has
+  buttons to stop, probe and clear.
+
 ## 0.2.1
 
 - Loot that can't be traded is listed separately and grayed out.

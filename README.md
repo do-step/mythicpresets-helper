@@ -32,11 +32,12 @@ finder to the dungeons where you actually have a key level to push.
   dungeon, leave the group or teleport.
 - **Explains group slang.** The Abbreviations tab lists class, ability and Mythic+ slang, in
   English, Russian and the European languages.
-- **Party chat presets after a key.** Once a key ends, a tab lists the loot of the whole group.
-  One click asks another player in party chat whether they need their item, another sends your
-  thank-you phrase. Items that can't be traded, like crafting reagents, are listed separately
-  and grayed out. The thank-you can also go out by itself after a timed key: off by default,
-  the text is set per character.
+- **Party chat presets after a key.** Once a key ends, the tab gathers the loot of the whole
+  group. Clicking another player's item asks in party chat whether they need it. Ctrl+click
+  tries an item on, Shift+click links it in chat. Items that can't be traded, like crafting
+  reagents, are listed separately and grayed out. Above the list is a thank-you button for the
+  group, with its own text on each character. After a timed key the thank-you can also go out
+  by itself, turn that on in the settings.
 - **Keeps Lua errors out of the way.** While a Mythic+ key or a raid boss fight is in progress,
   the Lua error window of any addon does not pop up. It opens once the key or the fight ends,
   and chat tells how many errors were hidden. On by default.
@@ -81,8 +82,9 @@ applied automatically.
 | Command | Action |
 |---|---|
 | `/mph` | show or hide the preset window |
-| `/mph probe` | group finder diagnostics |
-| `/mph debug` | toggle step by step logging |
+| `/mph probe` | write group finder diagnostics to the debug log |
+| `/mph debug` | toggle the debug log, saved in the addon SavedVariables on /reload or logout |
+| `/mph clearlog` | clear the debug log |
 | `/mph offset <n>` | extra nudge to the right, on top of the measured frames |
 | `/mph reset` | reset the window position |
 | `/mph help` | list the commands |
@@ -145,11 +147,12 @@ https://t.me/p_y_c_h/3
   подземелье, выходе из группы или после телепорта.
 - **Расшифровывает сленг.** Вкладка «Сокращения»: сленг классов, умений и M+ на русском,
   английском и европейских языках.
-- **Пресеты группового чата после ключа.** Когда ключ завершён, вкладка показывает добычу всей
-  группы. Клик по чужому предмету спрашивает в чате группы, нужен ли он владельцу, ещё один клик
-  отправляет благодарность. Предметы, которые нельзя передать, например материалы для ремесла,
-  показаны отдельно и серым. Благодарность может уходить и сама после ключа в тайм: по умолчанию
-  выключено, текст задаётся для каждого персонажа.
+- **Пресеты группового чата после ключа.** Когда ключ завершён, вкладка собирает добычу всей
+  группы. Клик по чужому предмету спрашивает в чате группы, нужен ли он владельцу. Ctrl+клик
+  примеряет предмет, Shift+клик вставляет ссылку в чат. Предметы, которые нельзя передать,
+  например материалы для ремесла, идут отдельным списком и показаны серым. Над списком кнопка
+  благодарности группе, текст у каждого персонажа свой. После ключа в тайм благодарность может
+  уходить сама, это включается в настройках.
 - **Не отвлекает ошибками Lua.** Пока идёт ключ M+ или бой с рейдовым боссом, окно ошибок Lua
   от любых аддонов не всплывает. Оно откроется после завершения ключа или боя, а в чате будет
   число скрытых ошибок. Включено по умолчанию.
@@ -196,8 +199,9 @@ https://t.me/p_y_c_h/3
 | Команда | Действие |
 |---|---|
 | `/mph` | показать или скрыть окно пресетов |
-| `/mph probe` | диагностика поиска групп |
-| `/mph debug` | включить или выключить пошаговый лог |
+| `/mph probe` | записать диагностику поиска групп в журнал отладки |
+| `/mph debug` | включить или выключить журнал отладки, он сохраняется в SavedVariables аддона после /reload или выхода |
+| `/mph clearlog` | очистить журнал отладки |
 | `/mph offset <n>` | дополнительный сдвиг вправо поверх измеренного |
 | `/mph reset` | сбросить положение окна |
 | `/mph help` | список команд |

@@ -122,10 +122,22 @@ local function SetStoneName(id)
     end)
 end
 
+local function Crossfade(texture, fromAlpha)
+    stoneRow.Reveal:Stop()
+    stoneRow.Base:SetTexture(texture)
+    stoneRow.Fade:SetFromAlpha(fromAlpha)
+    stoneRow.Icon:SetAlpha(1)
+    stoneRow.Base:SetAlpha(0)
+    stoneRow.Reveal:Play()
+end
+
 local function UpdateStone()
     local id, isToy, count = MPH.Hearthstone.Get()
     stoneRow.stoneCount = count or 0
     if id ~= stoneRow.stoneID or isToy ~= stoneRow.stoneToy then
+        if stoneRow.loading == false and stoneRow.stoneID then
+            Crossfade(stoneRow.Icon:GetTexture(), 1)
+        end
         stoneRow.stoneID = id
         stoneRow.stoneToy = isToy
         stoneRow.Icon:SetTexture(C_Item.GetItemIconByID(id or MPH.Hearthstone.ITEM))
@@ -139,10 +151,15 @@ local function UpdateStone()
 
     local loading = MPH.Hearthstone.IsLoading()
     if loading ~= stoneRow.loading then
-        stoneRow.Reveal:Stop()
-        stoneRow.Icon:SetAlpha(loading and 0 or 1)
-        stoneRow.Base:SetAlpha(loading and LOADING_ALPHA or 0)
-        if stoneRow.loading and not loading then stoneRow.Reveal:Play() end
+        local classic = C_Item.GetItemIconByID(MPH.Hearthstone.ITEM)
+        if loading then
+            stoneRow.Reveal:Stop()
+            stoneRow.Base:SetTexture(classic)
+            stoneRow.Icon:SetAlpha(0)
+            stoneRow.Base:SetAlpha(LOADING_ALPHA)
+        elseif stoneRow.loading then
+            Crossfade(classic, LOADING_ALPHA)
+        end
         stoneRow.loading = loading
     end
 
@@ -397,7 +414,6 @@ local function BuildStoneRow()
     stoneRow.Base = stoneRow.Hit:CreateTexture(nil, "ARTWORK", nil, -1)
     stoneRow.Base:SetAllPoints(stoneRow.Icon)
     stoneRow.Base:SetTexCoord(0.07, 0.93, 0.07, 0.93)
-    stoneRow.Base:SetTexture(C_Item.GetItemIconByID(MPH.Hearthstone.ITEM))
     stoneRow.Base:SetAlpha(0)
     MPH.SkinIcon(stoneRow.Base)
 
@@ -407,11 +423,10 @@ local function BuildStoneRow()
     show:SetFromAlpha(0)
     show:SetToAlpha(1)
     show:SetDuration(FADE_DURATION)
-    local hide = stoneRow.Reveal:CreateAnimation("Alpha")
-    hide:SetTarget(stoneRow.Base)
-    hide:SetFromAlpha(LOADING_ALPHA)
-    hide:SetToAlpha(0)
-    hide:SetDuration(FADE_DURATION)
+    stoneRow.Fade = stoneRow.Reveal:CreateAnimation("Alpha")
+    stoneRow.Fade:SetTarget(stoneRow.Base)
+    stoneRow.Fade:SetToAlpha(0)
+    stoneRow.Fade:SetDuration(FADE_DURATION)
 
     LayoutName(stoneRow, false)
     stoneRow:Show()
