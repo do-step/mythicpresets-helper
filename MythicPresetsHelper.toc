@@ -1,6 +1,6 @@
 ## Interface: 120100
 ## Title: MythicPresets Helper
-## Version: 0.2.1
+## Version: 0.2.2
 ## IconTexture: 525134
 ## Author: Pych
 ## SavedVariables: MythicPresetsHelperDB, MythicPresetsHelperLog
