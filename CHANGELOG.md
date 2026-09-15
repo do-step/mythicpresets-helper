@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.3
+
+- The preset window follows the Raider.IO profile width unless you dragged it.
+- The party chat presets tab is now Chat and loot presets, with a chest icon.
+- Right-click an item in the loot list to whisper its owner.
+- New default thank-you text.
+
 ## 0.2.2
 
 - Loot tab: Ctrl+click tries an item on, Shift+click links it in chat.

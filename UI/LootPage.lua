@@ -67,6 +67,7 @@ local function ShowRowTooltip(self)
         AddGrayLine(L["loot.message"])
         AddGrayLine(MPH.Loot.Message(item))
         AddGrayLine(L["loot.click"])
+        AddGrayLine(L["loot.rightclick"])
     end
     GameTooltip:Show()
 end
@@ -112,14 +113,18 @@ local function CreateRow()
     row.Info:SetJustifyH("LEFT")
     row.Info:SetWordWrap(false)
 
-    row:RegisterForClicks("LeftButtonUp")
-    row:SetScript("OnClick", function (self)
+    row:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+    row:SetScript("OnClick", function (self, button)
         if not self.item then return end
         if IsModifiedClick() then
             HandleModifiedItemClick(self.item.link)
             return
         end
         if self.item.own then return end
+        if button == "RightButton" then
+            MPH.Loot.Whisper(self.item)
+            return
+        end
         MPH.Loot.Ask(self.item)
         if GameTooltip:IsOwned(self) then ShowRowTooltip(self) end
     end)
@@ -281,7 +286,7 @@ end
 MPH.RegisterWindowPage({
     key = "loot",
     order = 4,
-    icon = "Interface\\Icons\\INV_Scroll_08",
+    atlas = "delves-bountiful",
     title = L["tabs.loot"],
     build = Build,
     refresh = MPH.LootPage.Refresh,

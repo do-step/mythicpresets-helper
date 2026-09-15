@@ -82,13 +82,14 @@ function Loot.CanTrade(link)
     return false
 end
 
-function Loot.Message(item)
-    local name = Ambiguate(item.player, "short")
+function Loot.Message(item, whisper)
     local slot = SLOT_WORD[Loot.EquipLoc(item.link) or ""]
-    if slot then
-        return string.format("%s, you need %s %s?", name, slot, item.link)
+    local question = slot and string.format("you need %s %s?", slot, item.link)
+        or string.format("you need %s?", item.link)
+    if whisper then
+        return (question:gsub("^%l", string.upper))
     end
-    return string.format("%s, you need %s?", name, item.link)
+    return Ambiguate(item.player, "short") .. ", " .. question
 end
 
 local function IsOwn(player)
@@ -131,6 +132,20 @@ function Loot.Ask(item)
         item.asked = true
         Refresh()
     end
+end
+
+function Loot.Whisper(item)
+    if item.own or Loot.CanTrade(item.link) == false then return end
+    local lockdown = C_ChatInfo.InChatMessagingLockdown and C_ChatInfo.InChatMessagingLockdown()
+    local sendTell = ChatFrameUtil and ChatFrameUtil.SendTellWithMessage
+    local target = Ambiguate(item.player, "none")
+    if lockdown or not sendTell then
+        MPH.Debug("whisper: lockdown %s, sendTell %s", tostring(lockdown), tostring(sendTell ~= nil))
+        if lockdown then MPH.Print(L["loot.locked"]) end
+        return
+    end
+    local ok, err = pcall(sendTell, target, Loot.Message(item, true), DEFAULT_CHAT_FRAME)
+    MPH.Debug("whisper: target %s, open %s", target, ok and "ok" or tostring(err))
 end
 
 function Loot.Thank()
