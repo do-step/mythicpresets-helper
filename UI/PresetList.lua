@@ -729,7 +729,8 @@ MPH.RegisterWindowPage({
 local function CreateWindow()
     frame = CreateFrame("Frame", "MythicPresetsHelperFrame", UIParent, "BasicFrameTemplateWithInset")
     MPH.SkinShell(frame)
-    frame:SetSize(FRAME_WIDTH, FRAME_HEIGHT)
+    local height = PVEFrame and PVEFrame:GetHeight() or 0
+    frame:SetSize(FRAME_WIDTH, height > 0 and height or FRAME_HEIGHT)
     frame:SetFrameStrata("HIGH")
     frame:SetToplevel(true)
     frame:SetMovable(true)

@@ -1,6 +1,6 @@
 ## Interface: 120100
 ## Title: MythicPresets Helper
-## Version: 0.2.3
+## Version: 0.2.4
 ## IconTexture: 525134
 ## Author: Pych
 ## SavedVariables: MythicPresetsHelperDB, MythicPresetsHelperLog
@@ -62,6 +62,7 @@ Filter.lua
 Slang.lua
 Teleport.lua
 Hearthstone.lua
+Travel.lua
 Thanks.lua
 Loot.lua
 Errors.lua

@@ -288,6 +288,7 @@ local function InitDB()
     local teleport = MythicPresetsHelperDB.teleport
     if type(teleport) == "table" then
         teleport.point, teleport.relPoint, teleport.x, teleport.y = nil, nil, nil, nil
+        teleport.randomTravel = nil
     end
     MPH.FillDefaults(MythicPresetsHelperDB, DB_DEFAULTS)
     MPH.db = MythicPresetsHelperDB
@@ -389,6 +390,7 @@ function MPH.Probe()
     end
     MPH.Print("teleport (code mapID/spell, + = known): %s", MPH.Teleport.Describe())
     MPH.Print("hearthstone (- = not usable): %s", MPH.Hearthstone.Describe())
+    MPH.Print("travel (+ = ready): %s", MPH.Travel.Describe())
     MPH.Print("errors: %s", MPH.Errors.Describe())
     MPH.Print("current raid: %s", tostring(MPH.Raids.GetCurrentRaidName()))
     for _, filters in ipairs({ 5, 1, 6, 2, 4, 0 }) do
