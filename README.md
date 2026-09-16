@@ -32,8 +32,9 @@ finder to the dungeons where you actually have a key level to push.
   dungeon, leave the group or teleport.
 - **Explains group slang.** The Abbreviations tab lists class, ability and Mythic+ slang, in
   English, Russian and the European languages.
-- **Party chat presets after a key.** Once a key ends, the tab gathers the loot of the whole
-  group. Clicking another player's item asks in party chat whether they need it. Ctrl+click
+- **Chat and loot presets after a key.** Once a key ends, the tab gathers the loot of the whole
+  group. Clicking another player's item asks in party chat whether they need it. Right-click
+  opens a whisper to the owner with the same question, even after the group is gone. Ctrl+click
   tries an item on, Shift+click links it in chat. Items that can't be traded, like crafting
   reagents, are listed separately and grayed out. Above the list is a thank-you button for the
   group, with its own text on each character. After a timed key the thank-you can also go out
@@ -58,13 +59,14 @@ right-click on it pins the window back beside the group finder. The window opens
 the Teleport tab together with the Dungeons & Raids page, unless it is already open; this can be
 turned off in Settings → AddOns → MythicPresets Helper.
 
-The window has side tabs: help, presets, teleport, party chat presets, abbreviations and Rapport (a placeholder for
+The window has side tabs: help, presets, teleport, chat and loot presets, abbreviations and Rapport (a placeholder for
 upcoming notes on players). The help page opens on the very first launch. Drag the window by
-its title with the left mouse button; Shift + right-click on the title puts it back beside the
-group finder.
+its title with the left mouse button and it stays where you leave it; Shift + right-click on the
+title puts it back beside the group finder, where it moves along when your Raider.IO profile
+changes width.
 
 Settings → AddOns → MythicPresets Helper has a button for the help page, auto-opening of the
-addon window, of the Teleport tab and of the Party chat presets tab, the automatic thank-you and
+addon window, of the Teleport tab and of the Chat and loot presets tab, the automatic thank-you and
 hiding Lua errors during keys and raid boss fights.
 
 ## Why you type the keystone level yourself
@@ -147,8 +149,9 @@ https://t.me/p_y_c_h/3
   подземелье, выходе из группы или после телепорта.
 - **Расшифровывает сленг.** Вкладка «Сокращения»: сленг классов, умений и M+ на русском,
   английском и европейских языках.
-- **Пресеты группового чата после ключа.** Когда ключ завершён, вкладка собирает добычу всей
-  группы. Клик по чужому предмету спрашивает в чате группы, нужен ли он владельцу. Ctrl+клик
+- **Пресеты чата и лута после ключа.** Когда ключ завершён, вкладка собирает добычу всей
+  группы. Клик по чужому предмету спрашивает в чате группы, нужен ли он владельцу. Правый клик
+  открывает личку владельцу с тем же вопросом, даже если группы уже нет. Ctrl+клик
   примеряет предмет, Shift+клик вставляет ссылку в чат. Предметы, которые нельзя передать,
   например материалы для ремесла, идут отдельным списком и показаны серым. Над списком кнопка
   благодарности группе, текст у каждого персонажа свой. После ключа в тайм благодарность может
@@ -172,13 +175,14 @@ https://t.me/p_y_c_h/3
 «Телепорт» вместе со страницей «Подземелья и рейды», если оно ещё не открыто, это отключается в
 «Настройки → AddOns → MythicPresets Helper».
 
-У окна боковые вкладки: «Как пользоваться», пресеты, «Телепорт», «Пресеты группового чата», «Сокращения» и Rapport
+У окна боковые вкладки: «Как пользоваться», пресеты, «Телепорт», «Пресеты чата и лута», «Сокращения» и Rapport
 (заготовка под заметки по игрокам). Инструкция открывается при самом первом запуске. Окно
-перетаскивается левой кнопкой мыши за заголовок, Shift + правый клик по заголовку возвращает
-его на место рядом с поиском групп.
+перетаскивается левой кнопкой мыши за заголовок и остаётся на новом месте. Shift + правый клик
+по заголовку возвращает его рядом с поиском групп, и там оно сдвигается, когда меняется ширина
+вашего профиля Raider.IO.
 
 В «Настройки → AddOns → MythicPresets Helper» есть кнопка инструкции, автооткрытие окна
-аддона, вкладок «Телепорт» и «Пресеты группового чата», автоматическая благодарность группе и
+аддона, вкладок «Телепорт» и «Пресеты чата и лута», автоматическая благодарность группе и
 скрытие ошибок Lua в ключе и в бою с рейдовым боссом.
 
 С EllesmereUI окна и вкладки аддона выглядят в его стиле. Скин отключается для этого аддона в

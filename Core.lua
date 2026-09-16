@@ -17,7 +17,7 @@ end
 
 MPH.DB_VERSION = 1
 MPH.MAX_KEY_AHEAD = 5
-MPH.LAYOUT_VERSION = 1
+MPH.LAYOUT_VERSION = 2
 MPH.LOG_LIMIT = 500
 
 local DB_DEFAULTS = {
@@ -60,7 +60,8 @@ local DB_DEFAULTS = {
     },
 }
 
-MPH.THANKS_DEFAULT = "ty bb <3 (auto-sent by MPH addon)"
+MPH.THANKS_DEFAULT = "ty bb (auto-sent by MPH addon <3)"
+local THANKS_OLD_DEFAULTS = { ["ty bb <3 (auto-sent by MPH addon)"] = true }
 
 local CHAR_DEFAULTS = {
     thanks = {
@@ -293,6 +294,9 @@ local function InitDB()
     if type(MythicPresetsHelperLog) ~= "table" then MythicPresetsHelperLog = {} end
     if type(MythicPresetsHelperLog.lines) ~= "table" then MythicPresetsHelperLog.lines = {} end
     MythicPresetsHelperCharDB = MPH.FillDefaults(MythicPresetsHelperCharDB or {}, CHAR_DEFAULTS)
+    if THANKS_OLD_DEFAULTS[MythicPresetsHelperCharDB.thanks.text] then
+        MythicPresetsHelperCharDB.thanks.text = MPH.THANKS_DEFAULT
+    end
     MPH.charDB = MythicPresetsHelperCharDB
 end
 

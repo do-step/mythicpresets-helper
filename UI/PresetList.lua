@@ -39,18 +39,19 @@ function MPH.DescribeWindow()
     for _, name in ipairs(UISpecialFrames) do
         if name == "MythicPresetsHelperFrame" then special = true end
     end
-    return string.format("%s, special %s, hooks %s", Describe(), tostring(special),
-        #hooks > 0 and table.concat(hooks, ", ") or "-")
+    return string.format("%s, special %s, follow %s, hooks %s", Describe(), tostring(special),
+        tostring(MPH.db.window.point == nil), #hooks > 0 and table.concat(hooks, ", ") or "-")
 end
 
 local ANCHOR_GAP = 12
+local RIO_INSET = 16
 local RIGHT_FRAMES = {
     "LFGListFrame",
     "PremadeGroupsFilterDialog",
     "PVEFrame",
-    "RaiderIO_ProfileTooltip",
 }
 local TOP_FRAMES = { "LFGListFrame", "PVEFrame", "PremadeGroupsFilterDialog" }
+local RIO_OWN_PARENTS = { PVEFrame = true, PremadeGroupsFilterDialog = true }
 
 local function ToUIParentScale(target, value)
     if not value then return nil end
@@ -65,37 +66,65 @@ local function VisibleEdge(name, getter)
     return ToUIParentScale(target, target[getter](target))
 end
 
-local function HiddenRaiderIOWidth()
-    local tooltip = _G["RaiderIO_ProfileTooltip"]
-    if not tooltip or tooltip:IsVisible() then return 0 end
-    local width = ToUIParentScale(tooltip, tooltip:GetWidth()) or 0
-    if width < 1 then return 0 end
-    return width + ANCHOR_GAP
+local rioOwnWidth
+
+local function RaiderIOShowsOwn()
+    local anchor = _G["RaiderIO_ProfileTooltipAnchor"]
+    local parent = anchor and anchor:GetParent()
+    local name = parent and parent:GetName()
+    return name ~= nil and RIO_OWN_PARENTS[name] == true
 end
 
-local function AnchorToGroupFinder()
+local function RaiderIOReserve()
+    local tooltip = _G["RaiderIO_ProfileTooltip"]
+    if not tooltip then return 0 end
+    local width = rioOwnWidth or ToUIParentScale(tooltip, tooltip:GetWidth()) or 0
+    if width < 1 then return 0 end
+    return math.max(0, width - RIO_INSET)
+end
+
+local lastAnchor
+
+local function AnchorToGroupFinder(source)
     frame:ClearAllPoints()
 
-    local right, top
+    local right, top, rightName
     for _, name in ipairs(RIGHT_FRAMES) do
         local edge = VisibleEdge(name, "GetRight")
-        if edge and (not right or edge > right) then right = edge end
+        if edge and (not right or edge > right) then right, rightName = edge, name end
     end
     for _, name in ipairs(TOP_FRAMES) do
         local upper = VisibleEdge(name, "GetTop")
         if upper and (not top or upper > top) then top = upper end
     end
 
+    local rio = RaiderIOShowsOwn() and VisibleEdge("RaiderIO_ProfileTooltip", "GetRight") or nil
+    if rio and right and rio > right then right, rightName = rio, "RaiderIO_ProfileTooltip" end
+
     if not right or not top then
         frame:SetPoint("CENTER", UIParent, "CENTER", 300, 0)
+        if source or lastAnchor ~= "center" then
+            MPH.Debug("anchor (%s): group finder not visible, center", tostring(source or "restore"))
+        end
+        lastAnchor = "center"
         return
     end
 
-    local x = right + ANCHOR_GAP + HiddenRaiderIOWidth() + (tonumber(MPH.db.window.offset) or 0)
+    local reserve = rio and 0 or RaiderIOReserve()
+    local offset = tonumber(MPH.db.window.offset) or 0
+    local x = right + ANCHOR_GAP + reserve + offset
     local maxX = UIParent:GetWidth() - FRAME_WIDTH - SIDE_TAB_SIZE
     if x > maxX then x = math.max(0, maxX) end
 
     frame:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", x, top)
+
+    local key = string.format("%.0f %.0f", x, top)
+    if source or key ~= lastAnchor then
+        MPH.Debug("anchor (%s): right %.0f (%s), rio %s, reserve %.0f, offset %d, x %.0f, top %.0f",
+            tostring(source or "restore"), right, tostring(rightName), rio and "own" or "not own",
+            reserve, offset, x, top)
+    end
+    lastAnchor = key
 end
 
 local function SaveWindowPosition()
@@ -120,8 +149,49 @@ end
 function MPH.PinWindowBesideGroupFinder()
     if not frame then return end
     MPH.db.window.point = nil
-    AnchorToGroupFinder()
-    SaveWindowPosition()
+    AnchorToGroupFinder("pin")
+end
+
+local rioHooked, rioMissingLogged, rioQueued = false, false, false
+
+local function FollowRaiderIO(source)
+    if rioQueued then return end
+    rioQueued = true
+    C_Timer.After(0, function ()
+        rioQueued = false
+        if not frame or not frame:IsShown() then return end
+        if MPH.db.window.point then
+            MPH.Debug("rio (%s): own width %.0f, window placed by hand, not moved", source, rioOwnWidth or 0)
+            return
+        end
+        Guard("rio " .. source, AnchorToGroupFinder, "rio " .. source)
+    end)
+end
+
+local function CheckOwnWidth(tooltip, source)
+    if not tooltip:IsVisible() or not RaiderIOShowsOwn() then return end
+    local width = ToUIParentScale(tooltip, tooltip:GetWidth()) or 0
+    if rioOwnWidth and math.abs(width - rioOwnWidth) < 1 then return end
+    MPH.Debug("rio (%s): own width %.0f -> %.0f", source, rioOwnWidth or 0, width)
+    rioOwnWidth = width
+    FollowRaiderIO(source)
+end
+
+local function HookRaiderIO(source)
+    if rioHooked then return end
+    local tooltip = _G["RaiderIO_ProfileTooltip"]
+    if not tooltip then
+        if not rioMissingLogged then
+            rioMissingLogged = true
+            MPH.Debug("rio (%s): profile tooltip not found", source)
+        end
+        return
+    end
+    rioHooked = true
+    tooltip:HookScript("OnSizeChanged", function (self) CheckOwnWidth(self, "size") end)
+    tooltip:HookScript("OnShow", function (self) CheckOwnWidth(self, "show") end)
+    MPH.Debug("rio (%s): hooked, own %s", source, tostring(RaiderIOShowsOwn()))
+    CheckOwnWidth(tooltip, "hook")
 end
 
 function MPH.RegisterWindowPage(page)
@@ -164,9 +234,14 @@ local function SideTabTooltip(self)
 end
 
 local function UpdateSideTabIcon(button)
+    if button.view.atlas then
+        button.Icon:SetAtlas(button.view.atlas)
+        return
+    end
     local icon = button.view.icon
     if type(icon) == "function" then icon = icon() end
     button.Icon:SetTexture(icon)
+    button.Icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
 end
 
 local function PaintSideTab(button)
@@ -415,7 +490,7 @@ local HELP_LINES = {
     { key = "info.when.raid", font = "GameFontHighlightSmall", gap = 1, indent = HELP_HINT_INDENT, hint = true },
     { key = "info.feature.teleport", icon = "Interface\\Icons\\INV_12_Mage_Portal", font = "GameFontHighlight", gap = 4 },
     { key = "info.when.teleport", font = "GameFontHighlightSmall", gap = 1, indent = HELP_HINT_INDENT, hint = true },
-    { key = "info.feature.loot", icon = "Interface\\Icons\\INV_Scroll_08", font = "GameFontHighlight", gap = 4 },
+    { key = "info.feature.loot", atlas = "delves-bountiful", font = "GameFontHighlight", gap = 4 },
     { key = "info.when.loot", font = "GameFontHighlightSmall", gap = 1, indent = HELP_HINT_INDENT, hint = true },
     { key = "info.feature.slang", icon = "Interface\\Icons\\INV_Scroll_03", font = "GameFontHighlight", gap = 4 },
     { key = "info.feature.rapport", icon = "Interface\\Icons\\Achievement_GuildPerk_EverybodysFriend", font = "GameFontHighlight", gap = 4 },
@@ -461,7 +536,9 @@ local function BuildHelpPage(page)
         if line.hint then
             text:SetTextColor(GRAY_FONT_COLOR:GetRGB())
         end
-        if line.icon then
+        if line.atlas then
+            text:SetText(CreateAtlasMarkup(line.atlas, 16, 16) .. " " .. L[line.key])
+        elseif line.icon then
             text:SetText("|T" .. line.icon .. ":16:16|t " .. L[line.key])
         else
             text:SetText(L[line.key])
@@ -663,6 +740,7 @@ local function CreateWindow()
     frame:SetScript("OnDragStop", function (self)
         self:StopMovingOrSizing()
         SaveWindowPosition()
+        MPH.Debug("window: dragged to %.0f, %.0f, follow off", MPH.db.window.x or 0, MPH.db.window.y or 0)
     end)
     frame:SetScript("OnMouseUp", function (_, mouseButton)
         if mouseButton == "RightButton" and IsShiftKeyDown() then
@@ -848,6 +926,7 @@ function MPH.ReleaseWindow()
 end
 
 local function ApplyVisibility()
+    HookRaiderIO("visibility")
     local page = MPH.IsGroupFinderPage()
     if onPage and not page then
         wanted = false
