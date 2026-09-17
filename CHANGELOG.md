@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.5
+
+- Rapport tab: the party of your last key with role, class, spec and M+ score.
+- Mouse wheel rates a player's role and play, three levels each.
+- Rating texts are set in the rating preset window.
+- Key history window with the party of every finished key.
+- Ratings appear in the player tooltip.
+
 ## 0.2.4
 
 - Teleport row: fixed list or a random teleport toy.

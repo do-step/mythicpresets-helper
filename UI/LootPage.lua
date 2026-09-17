@@ -285,6 +285,7 @@ end
 
 MPH.RegisterWindowPage({
     key = "loot",
+    bottom = true,
     order = 4,
     atlas = "delves-bountiful",
     title = L["tabs.loot"],

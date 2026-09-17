@@ -8,8 +8,21 @@ local SCROLLBAR_WIDTH = 28
 local ROW_WIDTH = FRAME_WIDTH - 16 - SCROLLBAR_WIDTH
 
 local SIDE_TAB_SIZE = 36
-local SIDE_TAB_GAP = 6
+local SIDE_TAB_GAP = 1
+local SIDE_TAB_OVERLAP = 6
 local SIDE_TAB_TOP = 34
+local SIDE_TAB_BOTTOM = 10
+local SIDE_TAB_HIGHLIGHT = "Interface\\QuestFrame\\UI-QuestTitleHighlight"
+local SIDE_TAB_SELECTED_ATLAS = "search-select"
+local SIDE_TAB_SELECTED_INSET = 0
+
+local ALERT_ATLAS = "UI-HUD-ActionBar-Proc-Loop-Flipbook"
+local ALERT_ROWS = 6
+local ALERT_COLUMNS = 5
+local ALERT_FRAMES = 30
+local ALERT_DURATION = 1.4
+local ALERT_SCALE = 1.35
+local ALERT_ALPHA = 0.75
 
 local frame, scrollChild
 local rows = {}
@@ -204,9 +217,11 @@ local function HighlightSideTabs()
     for _, page in ipairs(pages) do
         local selected = frame.currentPage == page.key
         for _, button in ipairs(page.buttons or {}) do
-            button.Selected:SetShown(selected and (button.view.kind == nil or button.view.kind == kind))
+            button.selected = selected and (button.view.kind == nil or button.view.kind == kind)
+            button.Selected:SetShown(button.selected)
         end
     end
+    MPH.RepaintSideTabs()
 end
 
 function MPH.SelectWindowPage(key)
@@ -218,6 +233,7 @@ function MPH.SelectWindowPage(key)
         if selected then selectedPage = page end
     end
     if key ~= "presets" then MPH.HideCopyBox() end
+    MPH.SetPageAlert(key, false)
     frame.currentPage = key
     HighlightSideTabs()
     if selectedPage and selectedPage.refresh then
@@ -244,11 +260,55 @@ local function UpdateSideTabIcon(button)
     button.Icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
 end
 
+local function CreateAlert(button)
+    local size = SIDE_TAB_SIZE * ALERT_SCALE
+    local texture = button:CreateTexture(nil, "OVERLAY", nil, 7)
+    texture:SetPoint("CENTER")
+    texture:SetSize(size, size)
+    texture:SetAtlas(ALERT_ATLAS)
+    texture:SetAlpha(ALERT_ALPHA)
+    texture:Hide()
+
+    local group = texture:CreateAnimationGroup()
+    group:SetLooping("REPEAT")
+    local anim = group:CreateAnimation("FlipBook")
+    anim:SetFlipBookRows(ALERT_ROWS)
+    anim:SetFlipBookColumns(ALERT_COLUMNS)
+    anim:SetFlipBookFrames(ALERT_FRAMES)
+    anim:SetDuration(ALERT_DURATION)
+    anim:SetFlipBookFrameWidth(0)
+    anim:SetFlipBookFrameHeight(0)
+    return { texture = texture, group = group }
+end
+
+local function SetSideTabAlert(button, on)
+    if on and not button.alert then button.alert = CreateAlert(button) end
+    if not button.alert then return end
+    if on then
+        button.alert.texture:Show()
+        button.alert.group:Play()
+    else
+        button.alert.group:Stop()
+        button.alert.texture:Hide()
+    end
+end
+
+function MPH.SetPageAlert(key, on)
+    for _, page in ipairs(pages) do
+        if page.key == key then
+            page.alert = on and true or nil
+            for _, button in ipairs(page.buttons or {}) do
+                SetSideTabAlert(button, page.alert)
+            end
+            MPH.Debug("window: alert %s %s", key, tostring(on))
+        end
+    end
+end
+
 local function PaintSideTab(button)
     local colors = MPH.GetSideTabColors()
     button.Border:SetColorTexture(unpack(colors.border))
     button.Background:SetColorTexture(unpack(colors.background))
-    button.Selected:SetColorTexture(unpack(colors.selected))
 end
 
 function MPH.RepaintSideTabs()
@@ -259,24 +319,30 @@ function MPH.RepaintSideTabs()
     end
 end
 
-local function CreateSideTab(page, view, index)
+local function CreateSideTab(page, view, index, bottom)
     local button = CreateFrame("Button", nil, frame)
     button.page = page
     button.view = view
     button:SetFrameLevel(frame:GetFrameLevel() + 10)
     button:SetSize(SIDE_TAB_SIZE, SIDE_TAB_SIZE)
-    button:SetPoint("TOPLEFT", frame, "TOPRIGHT", -2,
-        -SIDE_TAB_TOP - (index - 1) * (SIDE_TAB_SIZE + SIDE_TAB_GAP))
+    if bottom then
+        button:SetPoint("BOTTOMLEFT", frame, "BOTTOMRIGHT", -SIDE_TAB_OVERLAP,
+            SIDE_TAB_BOTTOM + (index - 1) * (SIDE_TAB_SIZE + SIDE_TAB_GAP))
+    else
+        button:SetPoint("TOPLEFT", frame, "TOPRIGHT", -SIDE_TAB_OVERLAP,
+            -SIDE_TAB_TOP - (index - 1) * (SIDE_TAB_SIZE + SIDE_TAB_GAP))
+    end
 
     button.Border = button:CreateTexture(nil, "BACKGROUND")
     button.Border:SetAllPoints()
 
     button.Background = button:CreateTexture(nil, "BACKGROUND", nil, 1)
-    button.Background:SetPoint("TOPLEFT", 1, -1)
-    button.Background:SetPoint("BOTTOMRIGHT", -1, 1)
+    button.Background:SetAllPoints()
 
-    button.Selected = button:CreateTexture(nil, "BACKGROUND", nil, 2)
-    button.Selected:SetAllPoints(button.Background)
+    button.Selected = button:CreateTexture(nil, "OVERLAY")
+    button.Selected:SetPoint("TOPLEFT", button, "TOPLEFT", -SIDE_TAB_SELECTED_INSET, SIDE_TAB_SELECTED_INSET)
+    button.Selected:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", SIDE_TAB_SELECTED_INSET, -SIDE_TAB_SELECTED_INSET)
+    button.Selected:SetAtlas(SIDE_TAB_SELECTED_ATLAS)
     button.Selected:Hide()
     PaintSideTab(button)
 
@@ -286,7 +352,7 @@ local function CreateSideTab(page, view, index)
     button.Icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
     UpdateSideTabIcon(button)
 
-    button:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square", "ADD")
+    button:SetHighlightTexture(SIDE_TAB_HIGHLIGHT, "ADD")
     button:SetScript("OnClick", function ()
         PlaySound(SOUNDKIT.IG_CHARACTER_INFO_TAB)
         MPH.SelectWindowPage(page.key)
@@ -296,6 +362,7 @@ local function CreateSideTab(page, view, index)
     end)
     button:SetScript("OnEnter", SideTabTooltip)
     button:SetScript("OnLeave", GameTooltip_Hide)
+    SetSideTabAlert(button, page.alert)
     return button
 end
 
@@ -812,7 +879,7 @@ local function CreateWindow()
         MPH.ClearLog()
     end)
 
-    local index = 0
+    local index, bottomIndex = 0, 0
     for _, page in ipairs(pages) do
         page.container = CreateFrame("Frame", nil, frame)
         page.container:SetAllPoints()
@@ -820,8 +887,15 @@ local function CreateWindow()
         page.build(page.container)
         page.buttons = {}
         for _, view in ipairs(page.tabs or { page }) do
-            index = index + 1
-            table.insert(page.buttons, CreateSideTab(page, view, index))
+            local position
+            if page.bottom then
+                bottomIndex = bottomIndex + 1
+                position = bottomIndex
+            else
+                index = index + 1
+                position = index
+            end
+            table.insert(page.buttons, CreateSideTab(page, view, position, page.bottom))
         end
     end
 

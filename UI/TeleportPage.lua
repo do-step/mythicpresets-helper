@@ -289,6 +289,28 @@ local function SetItemName(row, id, field)
     end)
 end
 
+local function Crossfade(row, texture, fromAlpha)
+    row.Reveal:Stop()
+    row.Base:SetTexture(texture)
+    row.Fade:SetFromAlpha(fromAlpha)
+    row.Icon:SetAlpha(1)
+    row.Base:SetAlpha(0)
+    row.Reveal:Play()
+end
+
+local function UpdateLoading(row, loading, texture)
+    if loading == row.loading then return end
+    if loading then
+        row.Reveal:Stop()
+        row.Base:SetTexture(texture)
+        row.Icon:SetAlpha(0)
+        row.Base:SetAlpha(LOADING_ALPHA)
+    elseif row.loading then
+        Crossfade(row, texture, LOADING_ALPHA)
+    end
+    row.loading = loading
+end
+
 local function UpdateTravel()
     local entry, count, index = MPH.Travel.Get()
     SetCounter(travelRow, index, count)
@@ -296,6 +318,9 @@ local function UpdateTravel()
     travelRow.Mode:SetText(ModeText(MPH.Travel.IsRandom(), "teleport.travelfixed"))
     UpdateMissing(travelRow)
     if entry ~= travelRow.entry then
+        if travelRow.loading == false and travelRow.entry then
+            Crossfade(travelRow, travelRow.Icon:GetTexture(), 1)
+        end
         travelRow.entry = entry
         travelRow.entryID = entry and entry.id
         if not entry then
@@ -311,24 +336,18 @@ local function UpdateTravel()
         PlaceButtons()
     end
 
+    local loading = MPH.Travel.IsLoading()
+    UpdateLoading(travelRow, loading, RANDOM_ICON)
+
     travelRow.Icon:SetDesaturated(not entry)
     if not entry then
-        SetGrayStatus(travelRow, L[MPH.Travel.IsLoading() and "teleport.randomsearch" or "teleport.randomnone"])
+        SetGrayStatus(travelRow, L[loading and "teleport.randomsearch" or "teleport.randomnone"])
         return
     end
     local remaining = entry.kind == "toy" and GetItemRemaining(entry.id) or GetSpellRemaining(entry.id)
     travelRow.Name:SetTextColor(1, 0.82, 0)
     travelRow.Unknown:SetText(StatusText(remaining, entry.place and L[entry.place]))
     travelRow.Unknown:SetTextColor(0.8, 0.8, 0.8)
-end
-
-local function Crossfade(texture, fromAlpha)
-    stoneRow.Reveal:Stop()
-    stoneRow.Base:SetTexture(texture)
-    stoneRow.Fade:SetFromAlpha(fromAlpha)
-    stoneRow.Icon:SetAlpha(1)
-    stoneRow.Base:SetAlpha(0)
-    stoneRow.Reveal:Play()
 end
 
 local function UpdateStone()
@@ -339,7 +358,7 @@ local function UpdateStone()
     UpdateMissing(stoneRow)
     if id ~= stoneRow.stoneID or isToy ~= stoneRow.stoneToy then
         if stoneRow.loading == false and stoneRow.stoneID then
-            Crossfade(stoneRow.Icon:GetTexture(), 1)
+            Crossfade(stoneRow, stoneRow.Icon:GetTexture(), 1)
         end
         stoneRow.stoneID = id
         stoneRow.stoneToy = isToy
@@ -353,18 +372,7 @@ local function UpdateStone()
     end
 
     local loading = MPH.Hearthstone.IsLoading()
-    if loading ~= stoneRow.loading then
-        local classic = C_Item.GetItemIconByID(MPH.Hearthstone.ITEM)
-        if loading then
-            stoneRow.Reveal:Stop()
-            stoneRow.Base:SetTexture(classic)
-            stoneRow.Icon:SetAlpha(0)
-            stoneRow.Base:SetAlpha(LOADING_ALPHA)
-        elseif stoneRow.loading then
-            Crossfade(classic, LOADING_ALPHA)
-        end
-        stoneRow.loading = loading
-    end
+    UpdateLoading(stoneRow, loading, C_Item.GetItemIconByID(MPH.Hearthstone.ITEM))
 
     stoneRow.Icon:SetDesaturated(not id)
     if id then
@@ -626,6 +634,25 @@ local function CreateRow(index)
     return row
 end
 
+local function AddCrossfade(row)
+    row.Base = row.Hit:CreateTexture(nil, "ARTWORK", nil, -1)
+    row.Base:SetAllPoints(row.Icon)
+    row.Base:SetTexCoord(0.07, 0.93, 0.07, 0.93)
+    row.Base:SetAlpha(0)
+    MPH.SkinIcon(row.Base)
+
+    row.Reveal = row.Hit:CreateAnimationGroup()
+    local show = row.Reveal:CreateAnimation("Alpha")
+    show:SetTarget(row.Icon)
+    show:SetFromAlpha(0)
+    show:SetToAlpha(1)
+    show:SetDuration(FADE_DURATION)
+    row.Fade = row.Reveal:CreateAnimation("Alpha")
+    row.Fade:SetTarget(row.Base)
+    row.Fade:SetToAlpha(0)
+    row.Fade:SetDuration(FADE_DURATION)
+end
+
 local function BuildStoneRow()
     stoneRow = CreateRow(ROW_COUNT + 2)
     stoneRow.stone = true
@@ -636,22 +663,7 @@ local function BuildStoneRow()
     stoneRow.Name:SetFontObject("GameFontNormal")
     stoneRow.Unknown:SetWordWrap(false)
 
-    stoneRow.Base = stoneRow.Hit:CreateTexture(nil, "ARTWORK", nil, -1)
-    stoneRow.Base:SetAllPoints(stoneRow.Icon)
-    stoneRow.Base:SetTexCoord(0.07, 0.93, 0.07, 0.93)
-    stoneRow.Base:SetAlpha(0)
-    MPH.SkinIcon(stoneRow.Base)
-
-    stoneRow.Reveal = stoneRow.Hit:CreateAnimationGroup()
-    local show = stoneRow.Reveal:CreateAnimation("Alpha")
-    show:SetTarget(stoneRow.Icon)
-    show:SetFromAlpha(0)
-    show:SetToAlpha(1)
-    show:SetDuration(FADE_DURATION)
-    stoneRow.Fade = stoneRow.Reveal:CreateAnimation("Alpha")
-    stoneRow.Fade:SetTarget(stoneRow.Base)
-    stoneRow.Fade:SetToAlpha(0)
-    stoneRow.Fade:SetDuration(FADE_DURATION)
+    AddCrossfade(stoneRow)
 
     stoneRow.Label:SetText(L["teleport.stone"])
     AddModeText(stoneRow, MPH.Hearthstone.GetMissing)
@@ -671,6 +683,7 @@ local function BuildTravelRow()
     travelRow.Name:SetFontObject("GameFontNormal")
     travelRow.Unknown:SetWordWrap(false)
     travelRow.Icon:SetTexture(RANDOM_ICON)
+    AddCrossfade(travelRow)
     travelRow.Label:SetText(L["teleport.travel"])
     AddModeText(travelRow, MPH.Travel.GetMissing)
     AddCounter(travelRow)

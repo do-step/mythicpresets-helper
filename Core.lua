@@ -45,6 +45,21 @@ local DB_DEFAULTS = {
         x = 0,
         y = 0,
     },
+    rapport = {
+        current = {
+            mapID = 0,
+            level = 0,
+            startedAt = 0,
+            members = {},
+        },
+        history = {},
+        lockHistory = true,
+        players = {},
+        labels = {
+            game = {},
+            role = {},
+        },
+    },
     teleport = {
         enabled = true,
         randomStone = true,
@@ -60,8 +75,7 @@ local DB_DEFAULTS = {
     },
 }
 
-MPH.THANKS_DEFAULT = "ty bb (auto-sent by MPH addon <3)"
-local THANKS_OLD_DEFAULTS = { ["ty bb <3 (auto-sent by MPH addon)"] = true }
+MPH.THANKS_DEFAULT = "ty bb (auto-sent by MPH addon) <3"
 
 local CHAR_DEFAULTS = {
     thanks = {
@@ -295,9 +309,6 @@ local function InitDB()
     if type(MythicPresetsHelperLog) ~= "table" then MythicPresetsHelperLog = {} end
     if type(MythicPresetsHelperLog.lines) ~= "table" then MythicPresetsHelperLog.lines = {} end
     MythicPresetsHelperCharDB = MPH.FillDefaults(MythicPresetsHelperCharDB or {}, CHAR_DEFAULTS)
-    if THANKS_OLD_DEFAULTS[MythicPresetsHelperCharDB.thanks.text] then
-        MythicPresetsHelperCharDB.thanks.text = MPH.THANKS_DEFAULT
-    end
     MPH.charDB = MythicPresetsHelperCharDB
 end
 
@@ -392,6 +403,7 @@ function MPH.Probe()
     MPH.Print("hearthstone (- = not usable): %s", MPH.Hearthstone.Describe())
     MPH.Print("travel (+ = ready): %s", MPH.Travel.Describe())
     MPH.Print("errors: %s", MPH.Errors.Describe())
+    MPH.Print("rapport: %s", MPH.Rapport.Describe())
     MPH.Print("current raid: %s", tostring(MPH.Raids.GetCurrentRaidName()))
     for _, filters in ipairs({ 5, 1, 6, 2, 4, 0 }) do
         local ok, groups = pcall(C_LFGList.GetAvailableActivityGroups, MPH.CATEGORY_RAIDS, filters)
@@ -511,6 +523,9 @@ SlashCmdList["MYTHICPRESETSHELPER"] = function (msg)
         MPH.Print("offset: %d", tonumber(MPH.db.window.offset) or 0)
     elseif cmd == "loot" and rest == "test" and MPH.db.debug then
         MPH.Loot.Test()
+    elseif cmd == "rapport" and rest == "reset" and MPH.db.debug then
+        MPH.Rapport.Reset()
+        MPH.Print("rapport: reset")
     elseif cmd == "help" then
         PrintHelp()
     else
