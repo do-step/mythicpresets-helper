@@ -25,8 +25,11 @@ finder to the dungeons where you actually have a key level to push.
   allowed in that armor.
 - **Teleports you to the dungeon.** The Teleport tab offers, one click each, the dungeon of the
   group you joined or listed and the dungeon of your own keystone, with the shared cooldown.
-  It also holds the Personal Key to the Arcantina and a random hearthstone from your toys
-  (right-click picks another one).
+  Below them are a teleport row and a hearthstone row: the mouse wheel cycles through them and
+  right-click switches the mode. The teleport row starts on a fixed list (Personal Key to the
+  Arcantina, Dandan, Dalaran, racial and class teleports) or picks a random teleport toy. A
+  number in the row header shows how many teleport or hearthstone toys you don't own yet, hover
+  it for the list.
 - **Opens by itself when it matters.** The window switches to the Teleport tab when you join or
   list a Mythic+ or Mythic 0 group and when the group fills up, and closes once you enter the
   dungeon, leave the group or teleport.
@@ -142,8 +145,11 @@ https://t.me/p_y_c_h/3
   этой броне допускается.
 - **Телепортирует в подземелье.** На вкладке «Телепорт» в один клик: подземелье группы, в
   которую вы вступили или которую выставили, и подземелье вашего ключа, с общей перезарядкой.
-  Там же ключ в Аркантину и случайный камень возвращения из ваших игрушек (правый клик
-  выбирает другой).
+  Ниже строки телепорта и камня возвращения: колесо мыши листает варианты, правый клик
+  переключает режим. Строка телепорта начинает с фиксированного списка (ключ в Аркантину,
+  Дандан, Даларан, расовые и классовые телепорты) или берёт случайную игрушку-телепорт. Число в
+  заголовке строки показывает, сколько таких игрушек или камней у вас ещё нет, при наведении
+  открывается список.
 - **Открывается само, когда нужно.** Окно переходит на вкладку «Телепорт», когда вы вступаете
   в группу M+ или M0 или выставляете её и когда группа набрана, и закрывается при входе в
   подземелье, выходе из группы или после телепорта.

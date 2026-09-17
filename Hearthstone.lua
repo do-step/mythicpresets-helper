@@ -14,6 +14,16 @@ local EXCLUDED = {
 
 local IsSecret = issecretvalue or function () return false end
 
+local function TravelWords()
+    local words = {}
+    local source = rawget(MPH.L, "travel.words")
+    if type(source) ~= "string" then return words end
+    for word in source:gmatch("[^;]+") do
+        table.insert(words, word)
+    end
+    return words
+end
+
 MPH.Hearthstone = {
     ITEM = ITEM,
 }
@@ -31,9 +41,10 @@ local scheduled = false
 local running = false
 local settled = false
 local incomplete = false
+local missing = {}
 local Schedule
 
-local function WithOpenToyFilters(scan)
+local function WithOpenToyFilters(collected, scan)
     local saved = {
         collected = C_ToyBox.GetCollectedShown(),
         uncollected = C_ToyBox.GetUncollectedShown(),
@@ -51,9 +62,9 @@ local function WithOpenToyFilters(scan)
     end
     local search = ToyBox and ToyBox.searchString or ""
 
-    C_ToyBox.SetCollectedShown(true)
-    C_ToyBox.SetUncollectedShown(false)
-    C_ToyBox.SetUnusableShown(true)
+    C_ToyBox.SetCollectedShown(collected)
+    C_ToyBox.SetUncollectedShown(not collected)
+    C_ToyBox.SetUnusableShown(collected)
     C_ToyBox.SetAllSourceTypeFilters(true)
     C_ToyBox.SetAllExpansionTypeFilters(true)
     C_ToyBox.SetFilterString("")
@@ -80,12 +91,12 @@ local function WithOpenToyFilters(scan)
     if not ok then error(err, 0) end
 end
 
-local function OwnedToys()
+local function ListToys(collected)
     local toys = {}
-    WithOpenToyFilters(function ()
+    WithOpenToyFilters(collected, function ()
         for index = 1, C_ToyBox.GetNumFilteredToys() or 0 do
             local id = C_ToyBox.GetToyFromIndex(index)
-            if id and id > 0 and not EXCLUDED[id] and PlayerHasToy(id) then
+            if id and id > 0 and PlayerHasToy(id) == collected then
                 table.insert(toys, id)
             end
         end
@@ -93,7 +104,7 @@ local function OwnedToys()
     return toys
 end
 
-local function Check(id, location)
+local function Check(id, location, words)
     if not C_Item.IsItemDataCachedByID(id) then
         C_Item.RequestLoadItemDataByID(id)
         return nil
@@ -107,14 +118,19 @@ local function Check(id, location)
     local data = C_TooltipInfo.GetToyByItemID(id)
     if not data or not data.lines then return nil end
 
+    local travel = false
     for _, line in ipairs(data.lines) do
         local text = line.leftText
-        if text and not IsSecret(text) and text:find(ITEM_SPELL_TRIGGER_ONUSE, 1, true) == 1
-            and text:find(location, 1, true) then
-            return true
+        if text and not IsSecret(text) and text:find(ITEM_SPELL_TRIGGER_ONUSE, 1, true) == 1 then
+            if not EXCLUDED[id] and text:find(location, 1, true) then
+                return "stone"
+            end
+            for _, word in ipairs(words) do
+                if text:find(word, 1, true) then travel = "travel" end
+            end
         end
     end
-    return false
+    return travel
 end
 
 local function Shuffle(items)
@@ -138,7 +154,7 @@ local function Draw()
     return table.remove(deck)
 end
 
-local function Finish(gen, stones, total, pass, pending)
+local function Finish(gen, stones, travel, total, pass, pending)
     if gen ~= generation then return end
 
     found = stones
@@ -156,11 +172,29 @@ local function Finish(gen, stones, total, pass, pending)
     owned = total
     deck = {}
     if current and not usable[current] then current = nil end
-    MPH.Debug("hearthstone: pass %d, %d usable, %d found, %d toys, %d not loaded",
-        pass, #list, foundCount, total, pending)
+    local travelCount = MPH.Travel.SetToys(travel)
+    MPH.Debug("hearthstone: pass %d, %d usable, %d found, %d travel, %d toys, %d not loaded",
+        pass, #list, foundCount, travelCount, total, pending)
 end
 
-local function Pass(gen, toys, location, stones, done)
+local function SortedKeys(set)
+    local keys = {}
+    for id in pairs(set) do table.insert(keys, id) end
+    table.sort(keys)
+    return keys
+end
+
+local function FinishMissing(gen, stones, travel, total, pass, pending)
+    if gen ~= generation then return end
+
+    missing = SortedKeys(stones)
+    local travelMissing = SortedKeys(travel)
+    MPH.Travel.SetMissing(travelMissing)
+    MPH.Debug("hearthstone: missing pass %d, %d stones, %d travel, %d toys, %d not loaded",
+        pass, #missing, #travelMissing, total, pending)
+end
+
+local function Pass(gen, toys, location, words, stones, travel, done)
     local index = 0
     local retry = {}
     local function Step()
@@ -170,9 +204,11 @@ local function Pass(gen, toys, location, stones, done)
             local id = toys[index]
             if not id then return done(retry) end
 
-            local result = Check(id, location)
-            if result then
+            local result = Check(id, location, words)
+            if result == "stone" then
                 stones[id] = true
+            elseif result == "travel" then
+                travel[id] = true
             elseif result == nil then
                 table.insert(retry, id)
             end
@@ -182,13 +218,36 @@ local function Pass(gen, toys, location, stones, done)
     Step()
 end
 
+local function RunPasses(gen, toys, location, words, onPass, onDone)
+    local stones = {}
+    local travel = {}
+    local function Run(pending, pass)
+        Pass(gen, pending, location, words, stones, travel, function (retry)
+            onPass(stones, travel, pass, #retry)
+            if #retry > 0 and RETRY_DELAYS[pass] then
+                C_Timer.After(RETRY_DELAYS[pass], function () Run(retry, pass + 1) end)
+                return
+            end
+            onDone(#retry)
+        end)
+    end
+    Run(toys, 1)
+end
+
+local function ScanMissing(gen, location, words)
+    local toys = ListToys(false)
+    RunPasses(gen, toys, location, words, function (stones, travel, pass, pending)
+        FinishMissing(gen, stones, travel, #toys, pass, pending)
+    end, function () end)
+end
+
 local function Scan()
     generation = generation + 1
     local gen = generation
 
     local location = GetBindLocation()
     local valid = location and not IsSecret(location) and location ~= ""
-    local toys = valid and OwnedToys() or {}
+    local toys = valid and ListToys(true) or {}
     if #toys == 0 then
         running = false
         attempts = attempts + 1
@@ -203,20 +262,17 @@ local function Scan()
     attempts = 0
     running = true
 
-    local stones = {}
-    local function Run(pending, pass)
-        Pass(gen, pending, location, stones, function (retry)
-            Finish(gen, stones, #toys, pass, #retry)
-            if #retry > 0 and RETRY_DELAYS[pass] then
-                C_Timer.After(RETRY_DELAYS[pass], function () Run(retry, pass + 1) end)
-                return
-            end
-            running = false
-            settled = true
-            incomplete = #retry > 0
-        end)
-    end
-    Run(toys, 1)
+    local words = TravelWords()
+    if #words == 0 then MPH.Debug("travel: no words for %s", GetLocale()) end
+
+    RunPasses(gen, toys, location, words, function (stones, travel, pass, pending)
+        Finish(gen, stones, travel, #toys, pass, pending)
+    end, function (pending)
+        running = false
+        settled = true
+        incomplete = pending > 0
+        ScanMissing(gen, location, words)
+    end)
 end
 
 function Schedule(delay)
@@ -230,6 +286,14 @@ end
 
 function MPH.Hearthstone.Rescan()
     if not running and (incomplete or owned == 0) then Schedule(0) end
+end
+
+function MPH.Hearthstone.IsSettled()
+    return settled
+end
+
+function MPH.Hearthstone.GetMissing()
+    return missing
 end
 
 function MPH.Hearthstone.IsRandom()
@@ -262,7 +326,7 @@ function MPH.Hearthstone.Get()
         if not current or not usable[current] then
             current = Draw()
         end
-        return current, true, #list
+        return current, true, #list, tIndexOf(list, current) or 0
     end
 
     current = nil
@@ -278,6 +342,17 @@ function MPH.Hearthstone.Next()
     return MPH.Hearthstone.Get()
 end
 
+function MPH.Hearthstone.Step(delta)
+    if #list == 0 or UseStandard() then return MPH.Hearthstone.Get() end
+
+    local index = delta > 0 and 0 or 1
+    for i, id in ipairs(list) do
+        if id == current then index = i end
+    end
+    current = list[(index - 1 + delta) % #list + 1]
+    return MPH.Hearthstone.Get()
+end
+
 function MPH.Hearthstone.Describe()
     local ids = {}
     for id in pairs(found) do table.insert(ids, id) end
@@ -287,10 +362,10 @@ function MPH.Hearthstone.Describe()
     for _, id in ipairs(ids) do
         table.insert(parts, usable[id] and tostring(id) or (id .. "-"))
     end
-    return string.format("mode %s, scan %s, %d usable of %d found, %d toys, bind %s, current %s: %s",
+    return string.format("mode %s, scan %s, %d usable of %d found, %d toys, %d missing, bind %s, current %s: %s",
         MPH.Hearthstone.IsRandom() and "random" or "standard",
         running and "running" or incomplete and "incomplete" or settled and "done" or "waiting",
-        #list, foundCount, owned, tostring(GetBindLocation()), tostring(current), table.concat(parts, ", "))
+        #list, foundCount, owned, #missing, tostring(GetBindLocation()), tostring(current), table.concat(parts, ", "))
 end
 
 local events = CreateFrame("Frame")

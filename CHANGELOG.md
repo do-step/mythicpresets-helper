@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.4
+
+- Teleport row: fixed list or a random teleport toy.
+- Mouse wheel cycles teleports and hearthstones, right-click switches the mode.
+- Row headers count teleport and hearthstone toys you don't own, hover for the list.
+- The window is as tall as the group finder.
+
 ## 0.2.3
 
 - The preset window follows the Raider.IO profile width unless you dragged it.

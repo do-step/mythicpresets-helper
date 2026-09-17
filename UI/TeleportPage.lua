@@ -9,9 +9,16 @@ local ROW_COUNT = 2
 local BOTTOM_MARGIN = 12
 local GCD_THRESHOLD = 2
 local TICK = 1
-local TOY_ID = 253629
 local LOADING_ALPHA = 0.4
 local FADE_DURATION = 0.3
+local RANDOM_ICON = "Interface\\Icons\\INV_Misc_QuestionMark"
+local LIST_WIDTH = 240
+local LIST_ENTRY_HEIGHT = 18
+local LIST_MAX_ENTRIES = 15
+local LIST_PADDING = 8
+local LIST_TITLE_HEIGHT = 14
+local LIST_SCROLLBAR_WIDTH = 28
+local LIST_HIDE_DELAY = 0.3
 
 local IsSecret = issecretvalue or function () return false end
 
@@ -20,8 +27,9 @@ MPH.TeleportPage = {}
 local page
 local rows = {}
 local allRows = {}
-local toyRow
 local stoneRow
+local travelRow
+local missingList
 local PlaceButtons
 
 local events = CreateFrame("Frame")
@@ -64,6 +72,170 @@ local function StatusText(remaining, destination)
     return status
 end
 
+local function ModeText(random, standardKey)
+    local standard = random and GRAY_FONT_COLOR or NORMAL_FONT_COLOR
+    local shuffled = random and NORMAL_FONT_COLOR or GRAY_FONT_COLOR
+    return string.format("%s / %s",
+        standard:WrapTextInColorCode(L[standardKey]),
+        shuffled:WrapTextInColorCode(L["teleport.stonerandom"]))
+end
+
+local function PaintPanel(frame)
+    local colors = MPH.GetSideTabColors()
+    frame.Border:SetColorTexture(unpack(colors.border))
+    frame.Background:SetColorTexture(unpack(colors.background))
+end
+
+local function MissingEntry(index)
+    local entry = missingList.entries[index]
+    if entry then return entry end
+
+    entry = CreateFrame("Button", nil, missingList.Content)
+    entry:SetHeight(LIST_ENTRY_HEIGHT)
+    entry:SetPoint("TOPLEFT", missingList.Content, "TOPLEFT", 0, -(index - 1) * LIST_ENTRY_HEIGHT)
+    entry:SetPoint("TOPRIGHT", missingList.Content, "TOPRIGHT", 0, -(index - 1) * LIST_ENTRY_HEIGHT)
+
+    entry.Icon = entry:CreateTexture(nil, "ARTWORK")
+    entry.Icon:SetSize(LIST_ENTRY_HEIGHT - 2, LIST_ENTRY_HEIGHT - 2)
+    entry.Icon:SetPoint("LEFT", entry, "LEFT", 0, 0)
+    entry.Icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
+    MPH.SkinIcon(entry.Icon, entry)
+
+    entry.Name = entry:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    entry.Name:SetPoint("LEFT", entry.Icon, "RIGHT", 6, 0)
+    entry.Name:SetPoint("RIGHT", entry, "RIGHT", 0, 0)
+    entry.Name:SetJustifyH("LEFT")
+    entry.Name:SetWordWrap(false)
+
+    entry:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD")
+    entry:SetScript("OnEnter", function (self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetToyByItemID(self.id)
+        GameTooltip:Show()
+    end)
+    entry:SetScript("OnLeave", GameTooltip_Hide)
+    missingList.entries[index] = entry
+    return entry
+end
+
+local function SetEntryToy(entry, id)
+    entry.id = id
+    entry.Icon:SetTexture(C_Item.GetItemIconByID(id))
+    local name = C_Item.GetItemNameByID(id)
+    entry.Name:SetText(name or "")
+    if name then return end
+    Item:CreateFromItemID(id):ContinueOnItemLoad(function ()
+        if entry.id == id then entry.Name:SetText(C_Item.GetItemNameByID(id)) end
+    end)
+end
+
+local function BuildMissingList()
+    missingList = CreateFrame("Frame", "MythicPresetsHelperMissingList", UIParent)
+    missingList:SetFrameStrata("FULLSCREEN_DIALOG")
+    missingList:SetClampedToScreen(true)
+    missingList:EnableMouse(true)
+    missingList:SetWidth(LIST_WIDTH)
+
+    missingList.Border = missingList:CreateTexture(nil, "BACKGROUND")
+    missingList.Border:SetAllPoints()
+    missingList.Background = missingList:CreateTexture(nil, "BACKGROUND", nil, 1)
+    missingList.Background:SetPoint("TOPLEFT", 1, -1)
+    missingList.Background:SetPoint("BOTTOMRIGHT", -1, 1)
+
+    missingList.Title = missingList:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
+    missingList.Title:SetPoint("TOPLEFT", missingList, "TOPLEFT", LIST_PADDING, -LIST_PADDING)
+    missingList.Title:SetPoint("TOPRIGHT", missingList, "TOPRIGHT", -LIST_PADDING, -LIST_PADDING)
+    missingList.Title:SetHeight(LIST_TITLE_HEIGHT)
+    missingList.Title:SetJustifyH("LEFT")
+
+    missingList.Scroll = CreateFrame("ScrollFrame", "MythicPresetsHelperMissingScrollFrame", missingList, "ScrollFrameTemplate")
+    missingList.Scroll:SetPoint("TOPLEFT", missingList.Title, "BOTTOMLEFT", 0, -LIST_PADDING)
+    missingList.Scroll:SetPoint("BOTTOMRIGHT", missingList, "BOTTOMRIGHT", -LIST_SCROLLBAR_WIDTH, LIST_PADDING)
+    MPH.SkinScroll(missingList.Scroll)
+
+    missingList.Content = CreateFrame("Frame", nil, missingList.Scroll)
+    missingList.Content:SetSize(LIST_WIDTH - LIST_PADDING - LIST_SCROLLBAR_WIDTH, 1)
+    missingList.Scroll:SetScrollChild(missingList.Content)
+    missingList.entries = {}
+
+    missingList:SetScript("OnUpdate", function (self, elapsed)
+        if self:IsMouseOver() or (self.owner and self.owner:IsVisible() and self.owner:IsMouseOver()) then
+            self.idle = 0
+            return
+        end
+        self.idle = self.idle + elapsed
+        if self.idle >= LIST_HIDE_DELAY then self:Hide() end
+    end)
+    missingList:Hide()
+end
+
+local function ShowMissingList(owner)
+    local ids = owner.getMissing()
+    if #ids == 0 then return end
+    if not missingList then BuildMissingList() end
+
+    for index, id in ipairs(ids) do
+        local entry = MissingEntry(index)
+        SetEntryToy(entry, id)
+        entry:Show()
+    end
+    for index = #ids + 1, #missingList.entries do
+        missingList.entries[index]:Hide()
+    end
+
+    local visible = math.min(#ids, LIST_MAX_ENTRIES)
+    missingList.Content:SetHeight(#ids * LIST_ENTRY_HEIGHT)
+    missingList:SetHeight(LIST_PADDING * 3 + LIST_TITLE_HEIGHT + visible * LIST_ENTRY_HEIGHT)
+    missingList.Title:SetText(RED_FONT_COLOR:WrapTextInColorCode(string.format(L["teleport.missing"], #ids)))
+    missingList.Scroll:SetVerticalScroll(0)
+    missingList:ClearAllPoints()
+    missingList:SetPoint("BOTTOMRIGHT", owner, "TOPRIGHT", 0, 0)
+    PaintPanel(missingList)
+    missingList.owner = owner
+    missingList.idle = 0
+    missingList:Show()
+end
+
+local function AddModeText(row, getMissing)
+    row.Missing = row:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+    row.Missing:SetPoint("TOPRIGHT", row, "TOPRIGHT", 0, 0)
+    row.Missing:SetHeight(LABEL_HEIGHT)
+    row.Missing:SetJustifyH("RIGHT")
+
+    row.Mode = row:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    row.Mode:SetPoint("TOPRIGHT", row.Missing, "TOPLEFT", 0, 0)
+    row.Mode:SetHeight(LABEL_HEIGHT)
+    row.Mode:SetJustifyH("RIGHT")
+    row.Label:SetPoint("TOPRIGHT", row.Mode, "TOPLEFT", -6, 0)
+
+    row.MissingHit = CreateFrame("Frame", nil, row)
+    row.MissingHit:SetAllPoints(row.Missing)
+    row.MissingHit:EnableMouse(true)
+    row.MissingHit.getMissing = getMissing
+    row.MissingHit:SetScript("OnEnter", ShowMissingList)
+    row.MissingHit:Hide()
+end
+
+local function UpdateMissing(row)
+    local count = #row.MissingHit.getMissing()
+    row.Missing:SetText(count > 0 and string.format(" [%d]", count) or "")
+    row.MissingHit:SetShown(count > 0)
+end
+
+local function AddCounter(row)
+    row.Counter = row.Hit:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+    row.Counter:SetPoint("BOTTOMRIGHT", row.Hit, "RIGHT", -4, 1)
+    row.Counter:SetJustifyH("RIGHT")
+end
+
+local function SetCounter(row, index, count)
+    if count > 1 and index > 0 then
+        row.Counter:SetText(string.format("%d/%d", index, count))
+    else
+        row.Counter:SetText("")
+    end
+end
+
 local function LayoutName(row, known)
     row.Name:ClearAllPoints()
     if known then
@@ -71,7 +243,11 @@ local function LayoutName(row, known)
         row.Name:SetPoint("RIGHT", row.Hit, "RIGHT", -4, 0)
     else
         row.Name:SetPoint("BOTTOMLEFT", row.Icon, "RIGHT", 10, 1)
-        row.Name:SetPoint("BOTTOMRIGHT", row.Hit, "RIGHT", -4, 1)
+        if row.Counter then
+            row.Name:SetPoint("BOTTOMRIGHT", row.Counter, "BOTTOMLEFT", -6, 0)
+        else
+            row.Name:SetPoint("BOTTOMRIGHT", row.Hit, "RIGHT", -4, 1)
+        end
     end
     row.Unknown:SetShown(not known)
 end
@@ -92,34 +268,58 @@ local function UpdateRow(row)
     return known
 end
 
-local function UpdateToy()
-    local owned = PlayerHasToy(TOY_ID)
-    toyRow.Icon:SetDesaturated(not owned)
-    if not owned then
-        toyRow.Name:SetTextColor(0.6, 0.6, 0.6)
-        toyRow.Unknown:SetText(L["teleport.toymissing"])
-        toyRow.Unknown:SetTextColor(GRAY_FONT_COLOR:GetRGB())
-        return
-    end
-
-    toyRow.Name:SetTextColor(1, 0.82, 0)
-    toyRow.Unknown:SetText(StatusText(GetItemRemaining(TOY_ID), L["teleport.toyplace"]))
-    toyRow.Unknown:SetTextColor(0.8, 0.8, 0.8)
+local function SetGrayStatus(row, text)
+    row.Name:SetTextColor(0.6, 0.6, 0.6)
+    row.Unknown:SetText(text)
+    row.Unknown:SetTextColor(GRAY_FONT_COLOR:GetRGB())
 end
 
-local function SetStoneName(id)
+local function SetItemName(row, id, field)
     local name = C_Item.GetItemNameByID(id)
     if name then
-        stoneRow.Name:SetText(name)
+        row.Name:SetText(name)
         return
     end
 
-    stoneRow.Name:SetText("")
+    row.Name:SetText("")
     Item:CreateFromItemID(id):ContinueOnItemLoad(function ()
-        if stoneRow.stoneID == id then
-            stoneRow.Name:SetText(C_Item.GetItemNameByID(id))
+        if row[field] == id then
+            row.Name:SetText(C_Item.GetItemNameByID(id))
         end
     end)
+end
+
+local function UpdateTravel()
+    local entry, count, index = MPH.Travel.Get()
+    SetCounter(travelRow, index, count)
+    travelRow.travelCount = count
+    travelRow.Mode:SetText(ModeText(MPH.Travel.IsRandom(), "teleport.travelfixed"))
+    UpdateMissing(travelRow)
+    if entry ~= travelRow.entry then
+        travelRow.entry = entry
+        travelRow.entryID = entry and entry.id
+        if not entry then
+            travelRow.Icon:SetTexture(RANDOM_ICON)
+            travelRow.Name:SetText(L["teleport.norandom"])
+        elseif entry.kind == "toy" then
+            travelRow.Icon:SetTexture(C_Item.GetItemIconByID(entry.id))
+            SetItemName(travelRow, entry.id, "entryID")
+        else
+            travelRow.Icon:SetTexture(C_Spell.GetSpellTexture(entry.id))
+            travelRow.Name:SetText(C_Spell.GetSpellName(entry.id))
+        end
+        PlaceButtons()
+    end
+
+    travelRow.Icon:SetDesaturated(not entry)
+    if not entry then
+        SetGrayStatus(travelRow, L[MPH.Travel.IsLoading() and "teleport.randomsearch" or "teleport.randomnone"])
+        return
+    end
+    local remaining = entry.kind == "toy" and GetItemRemaining(entry.id) or GetSpellRemaining(entry.id)
+    travelRow.Name:SetTextColor(1, 0.82, 0)
+    travelRow.Unknown:SetText(StatusText(remaining, entry.place and L[entry.place]))
+    travelRow.Unknown:SetTextColor(0.8, 0.8, 0.8)
 end
 
 local function Crossfade(texture, fromAlpha)
@@ -132,8 +332,11 @@ local function Crossfade(texture, fromAlpha)
 end
 
 local function UpdateStone()
-    local id, isToy, count = MPH.Hearthstone.Get()
+    local id, isToy, count, index = MPH.Hearthstone.Get()
+    SetCounter(stoneRow, index or 0, count or 0)
     stoneRow.stoneCount = count or 0
+    stoneRow.Mode:SetText(ModeText(MPH.Hearthstone.IsRandom(), "teleport.stonestandard"))
+    UpdateMissing(stoneRow)
     if id ~= stoneRow.stoneID or isToy ~= stoneRow.stoneToy then
         if stoneRow.loading == false and stoneRow.stoneID then
             Crossfade(stoneRow.Icon:GetTexture(), 1)
@@ -142,7 +345,7 @@ local function UpdateStone()
         stoneRow.stoneToy = isToy
         stoneRow.Icon:SetTexture(C_Item.GetItemIconByID(id or MPH.Hearthstone.ITEM))
         if id then
-            SetStoneName(id)
+            SetItemName(stoneRow, id, "stoneID")
         else
             stoneRow.Name:SetText(L["teleport.nostone"])
         end
@@ -185,7 +388,7 @@ end
 local function UpdateState()
     if not page then return end
 
-    UpdateToy()
+    UpdateTravel()
     UpdateStone()
 
     local spellID
@@ -217,10 +420,22 @@ end
 
 local function ShowTooltip(self)
     local row = self.row
-    if not row or not (row.toy or row.dungeon or row.stoneID) then return end
+    if not row or not (row.dungeon or row.stoneID or row.entry) then return end
 
     GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-    if row.stone then
+    if row.travel then
+        if row.entry.kind == "toy" then
+            GameTooltip:SetToyByItemID(row.entry.id)
+        else
+            GameTooltip:SetSpellByID(row.entry.id)
+        end
+        GameTooltip:AddLine(" ")
+        if row.travelCount > 1 then
+            GameTooltip:AddLine(L["teleport.randomreroll"], GRAY_FONT_COLOR:GetRGB())
+        end
+        GameTooltip:AddLine(string.format(L["teleport.stonemode"],
+            L[MPH.Travel.IsRandom() and "teleport.stonerandom" or "teleport.travelfixed"]), GRAY_FONT_COLOR:GetRGB())
+    elseif row.stone then
         if row.stoneToy then
             GameTooltip:SetToyByItemID(row.stoneID)
         else
@@ -233,12 +448,6 @@ local function ShowTooltip(self)
         end
         GameTooltip:AddLine(string.format(L["teleport.stonemode"],
             L[random and "teleport.stonerandom" or "teleport.stonestandard"]), GRAY_FONT_COLOR:GetRGB())
-    elseif row.toy then
-        GameTooltip:SetToyByItemID(row.toy)
-        if not PlayerHasToy(row.toy) then
-            GameTooltip:AddLine(" ")
-            GameTooltip:AddLine(L["teleport.notoy"], 1, 0.3, 0.3, true)
-        end
     else
         GameTooltip:SetSpellByID(row.dungeon.teleport)
         if not IsPlayerSpell(row.dungeon.teleport) then
@@ -268,19 +477,31 @@ local function EnsureButton(row)
         "SecureActionButtonTemplate")
     button:SetFrameStrata("DIALOG")
     button:RegisterForClicks("LeftButtonUp", "LeftButtonDown")
-    if row.toy then
-        button:SetAttribute("type", "toy")
-        button:SetAttribute("toy", row.toy)
+    if row.travel then
+        button:SetScript("OnMouseUp", function (self, mouseButton)
+            if InCombatLockdown() or mouseButton ~= "RightButton" then return end
+            MPH.Travel.SetRandom(not MPH.Travel.IsRandom())
+            UpdateTravel()
+            if GameTooltip:IsOwned(self) then ShowTooltip(self) end
+        end)
+        button:EnableMouseWheel(true)
+        button:SetScript("OnMouseWheel", function (self, delta)
+            if InCombatLockdown() then return end
+            MPH.Travel.Step(-delta)
+            UpdateTravel()
+            if GameTooltip:IsOwned(self) then ShowTooltip(self) end
+        end)
     elseif row.stone then
         button:SetScript("OnMouseUp", function (self, mouseButton)
+            if InCombatLockdown() or mouseButton ~= "RightButton" then return end
+            MPH.Hearthstone.SetRandom(not MPH.Hearthstone.IsRandom())
+            UpdateStone()
+            if GameTooltip:IsOwned(self) then ShowTooltip(self) end
+        end)
+        button:EnableMouseWheel(true)
+        button:SetScript("OnMouseWheel", function (self, delta)
             if InCombatLockdown() then return end
-            if mouseButton == "MiddleButton" then
-                MPH.Hearthstone.SetRandom(not MPH.Hearthstone.IsRandom())
-            elseif mouseButton == "RightButton" then
-                MPH.Hearthstone.Next()
-            else
-                return
-            end
+            MPH.Hearthstone.Step(-delta)
             UpdateStone()
             if GameTooltip:IsOwned(self) then ShowTooltip(self) end
         end)
@@ -308,12 +529,17 @@ end
 function PlaceButtons()
     if InCombatLockdown() then return end
     for _, row in ipairs(allRows) do
-        local button = (row.dungeon or row.toy or row.stoneID) and row:IsVisible() and EnsureButton(row)
+        local button = (row.dungeon or row.stoneID or row.entry) and row:IsVisible() and EnsureButton(row)
         if button then
             button:ClearAllPoints()
             button:SetAllPoints(row.Hit)
             if row.dungeon then
                 button:SetAttribute("spell", row.dungeon.teleport)
+            elseif row.travel then
+                local kind = row.entry.kind
+                button:SetAttribute("type", kind)
+                button:SetAttribute("toy", kind == "toy" and row.entry.id or nil)
+                button:SetAttribute("spell", kind == "spell" and row.entry.id or nil)
             elseif row.stone then
                 button:SetAttribute("type", row.stoneToy and "toy" or "item")
                 button:SetAttribute("toy", row.stoneToy and row.stoneID or nil)
@@ -407,7 +633,6 @@ local function BuildStoneRow()
     stoneRow.stoneCount = 0
     stoneRow:SetPoint("BOTTOMLEFT", page, "BOTTOMLEFT", 20, BOTTOM_MARGIN)
     stoneRow:SetPoint("BOTTOMRIGHT", page, "BOTTOMRIGHT", -20, BOTTOM_MARGIN)
-    stoneRow.Label:SetText(L["teleport.stone"])
     stoneRow.Name:SetFontObject("GameFontNormal")
     stoneRow.Unknown:SetWordWrap(false)
 
@@ -428,26 +653,30 @@ local function BuildStoneRow()
     stoneRow.Fade:SetToAlpha(0)
     stoneRow.Fade:SetDuration(FADE_DURATION)
 
+    stoneRow.Label:SetText(L["teleport.stone"])
+    AddModeText(stoneRow, MPH.Hearthstone.GetMissing)
+    AddCounter(stoneRow)
     LayoutName(stoneRow, false)
     stoneRow:Show()
     table.insert(allRows, stoneRow)
 end
 
-local function BuildToyRow()
-    toyRow = CreateRow(ROW_COUNT + 1)
-    toyRow.toy = TOY_ID
-    toyRow:SetPoint("BOTTOMLEFT", stoneRow, "TOPLEFT", 0, ROW_GAP)
-    toyRow:SetPoint("BOTTOMRIGHT", stoneRow, "TOPRIGHT", 0, ROW_GAP)
-    toyRow.Label:SetText(L["teleport.toy"])
-    toyRow.Name:SetFontObject("GameFontNormal")
-    toyRow.Icon:SetTexture(C_Item.GetItemIconByID(TOY_ID))
-    LayoutName(toyRow, false)
-    toyRow:Show()
-    table.insert(allRows, toyRow)
-
-    Item:CreateFromItemID(TOY_ID):ContinueOnItemLoad(function ()
-        toyRow.Name:SetText(C_Item.GetItemNameByID(TOY_ID))
-    end)
+local function BuildTravelRow()
+    travelRow = CreateRow(ROW_COUNT + 1)
+    travelRow.travel = true
+    travelRow.entry = false
+    travelRow.travelCount = 0
+    travelRow:SetPoint("BOTTOMLEFT", stoneRow, "TOPLEFT", 0, ROW_GAP)
+    travelRow:SetPoint("BOTTOMRIGHT", stoneRow, "TOPRIGHT", 0, ROW_GAP)
+    travelRow.Name:SetFontObject("GameFontNormal")
+    travelRow.Unknown:SetWordWrap(false)
+    travelRow.Icon:SetTexture(RANDOM_ICON)
+    travelRow.Label:SetText(L["teleport.travel"])
+    AddModeText(travelRow, MPH.Travel.GetMissing)
+    AddCounter(travelRow)
+    LayoutName(travelRow, false)
+    travelRow:Show()
+    table.insert(allRows, travelRow)
 end
 
 local function Build(container)
@@ -467,7 +696,7 @@ local function Build(container)
         allRows[index] = row
     end
     BuildStoneRow()
-    BuildToyRow()
+    BuildTravelRow()
 
     page.StatusIcon = page:CreateTexture(nil, "ARTWORK")
     page.StatusIcon:SetSize(STATUS_ICON_SIZE, STATUS_ICON_SIZE)
@@ -505,6 +734,7 @@ local function Build(container)
     page:HookScript("OnShow", function ()
         MPH.Hearthstone.Rescan()
         MPH.Hearthstone.Next()
+        MPH.Travel.Reset()
         MPH.TeleportPage.Refresh()
     end)
 end
