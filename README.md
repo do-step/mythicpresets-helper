@@ -42,6 +42,12 @@ finder to the dungeons where you actually have a key level to push.
   reagents, are listed separately and grayed out. Above the list is a thank-you button for the
   group, with its own text on each character. After a timed key the thank-you can also go out
   by itself, turn that on in the settings.
+- **Remembers who you played with.** When a key starts, the Rapport tab records the party: name,
+  role, class, spec and each player's M+ score at that moment. The mouse wheel over the role icon
+  rates the role, over the rest of the row it rates their play, three levels each, with your own
+  wording set in the rating preset. Finished keys go to the key history, where any run can be
+  unfolded, and on your next key together the row also shows the score from the previous one.
+  Ratings show up in the player tooltip in game.
 - **Keeps Lua errors out of the way.** While a Mythic+ key or a raid boss fight is in progress,
   the Lua error window of any addon does not pop up. It opens once the key or the fight ends,
   and chat tells how many errors were hidden. On by default.
@@ -62,8 +68,8 @@ right-click on it pins the window back beside the group finder. The window opens
 the Teleport tab together with the Dungeons & Raids page, unless it is already open; this can be
 turned off in Settings → AddOns → MythicPresets Helper.
 
-The window has side tabs: help, presets, teleport, chat and loot presets, abbreviations and Rapport (a placeholder for
-upcoming notes on players). The help page opens on the very first launch. Drag the window by
+The window has side tabs: help, presets, teleport, chat and loot presets, abbreviations and Rapport (your notes on
+the players you meet). The help page opens on the very first launch. Drag the window by
 its title with the left mouse button and it stays where you leave it; Shift + right-click on the
 title puts it back beside the group finder, where it moves along when your Raider.IO profile
 changes width.
@@ -162,6 +168,12 @@ https://t.me/p_y_c_h/3
   например материалы для ремесла, идут отдельным списком и показаны серым. Над списком кнопка
   благодарности группе, текст у каждого персонажа свой. После ключа в тайм благодарность может
   уходить сама, это включается в настройках.
+- **Помнит, с кем вы играли.** На старте ключа вкладка Rapport записывает состав: ник, роль,
+  класс, специализацию и рейтинг M+ каждого на тот момент. Колесико над иконкой роли меняет
+  оценку роли, над остальной строкой общую оценку, по три ступени, а тексты оценок задаются в
+  пресете. Завершённые ключи попадают в историю, где любой из них раскрывается по клику, и при
+  следующей встрече в строке виден рейтинг с прошлого ключа. Оценка видна и в тултипе
+  персонажа в игре.
 - **Не отвлекает ошибками Lua.** Пока идёт ключ M+ или бой с рейдовым боссом, окно ошибок Lua
   от любых аддонов не всплывает. Оно откроется после завершения ключа или боя, а в чате будет
   число скрытых ошибок. Включено по умолчанию.
@@ -182,7 +194,7 @@ https://t.me/p_y_c_h/3
 «Настройки → AddOns → MythicPresets Helper».
 
 У окна боковые вкладки: «Как пользоваться», пресеты, «Телепорт», «Пресеты чата и лута», «Сокращения» и Rapport
-(заготовка под заметки по игрокам). Инструкция открывается при самом первом запуске. Окно
+(ваши заметки по игрокам). Инструкция открывается при самом первом запуске. Окно
 перетаскивается левой кнопкой мыши за заголовок и остаётся на новом месте. Shift + правый клик
 по заголовку возвращает его рядом с поиском групп, и там оно сдвигается, когда меняется ширина
 вашего профиля Raider.IO.
