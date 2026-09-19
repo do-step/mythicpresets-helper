@@ -28,14 +28,16 @@ local frame, scrollChild
 local rows = {}
 local wanted = false
 local held, pendingPage = false, nil
+local waitingPanel, quietHide = false, false
 local onPage = false
 local hooks = {}
 
 local pages = {}
 
 local function Describe()
-    return string.format("shown %s, wanted %s, held %s, onPage %s, page %s, PVEFrame %s, finder %s",
-        tostring(frame ~= nil and frame:IsShown()), tostring(wanted), tostring(held), tostring(onPage),
+    return string.format("shown %s, wanted %s, held %s, waiting %s, onPage %s, page %s, PVEFrame %s, finder %s",
+        tostring(frame ~= nil and frame:IsShown()), tostring(wanted), tostring(held),
+        tostring(waitingPanel), tostring(onPage),
         tostring(MPH.IsGroupFinderPage()), tostring(PVEFrame ~= nil and PVEFrame:IsShown()),
         tostring(GroupFinderFrame ~= nil and GroupFinderFrame:IsShown()))
 end
@@ -57,6 +59,7 @@ function MPH.DescribeWindow()
 end
 
 local ANCHOR_GAP = 12
+local RIO_GAP = 8
 local RIO_INSET = 16
 local RIGHT_FRAMES = {
     "LFGListFrame",
@@ -79,7 +82,7 @@ local function VisibleEdge(name, getter)
     return ToUIParentScale(target, target[getter](target))
 end
 
-local rioOwnWidth
+local rioOwnWidth, rioOwnReach
 
 local function RaiderIOShowsOwn()
     local anchor = _G["RaiderIO_ProfileTooltipAnchor"]
@@ -89,6 +92,7 @@ local function RaiderIOShowsOwn()
 end
 
 local function RaiderIOReserve()
+    if rioOwnReach then return rioOwnReach end
     local tooltip = _G["RaiderIO_ProfileTooltip"]
     if not tooltip then return 0 end
     local width = rioOwnWidth or ToUIParentScale(tooltip, tooltip:GetWidth()) or 0
@@ -112,9 +116,22 @@ local function AnchorToGroupFinder(source)
     end
 
     local rio = RaiderIOShowsOwn() and VisibleEdge("RaiderIO_ProfileTooltip", "GetRight") or nil
-    if rio and right and rio > right then right, rightName = rio, "RaiderIO_ProfileTooltip" end
+    if rio and right and rio > right then
+        rioOwnReach = rio - right
+        right, rightName = rio, "RaiderIO_ProfileTooltip"
+    end
 
     if not right or not top then
+        local last = MPH.db.window
+        if last.lastX and last.lastTop then
+            frame:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", last.lastX, last.lastTop)
+            if source or lastAnchor ~= "last" then
+                MPH.Debug("anchor (%s): group finder not visible, last x %.0f, top %.0f",
+                    tostring(source or "restore"), last.lastX, last.lastTop)
+            end
+            lastAnchor = "last"
+            return
+        end
         frame:SetPoint("CENTER", UIParent, "CENTER", 300, 0)
         if source or lastAnchor ~= "center" then
             MPH.Debug("anchor (%s): group finder not visible, center", tostring(source or "restore"))
@@ -124,20 +141,49 @@ local function AnchorToGroupFinder(source)
     end
 
     local reserve = rio and 0 or RaiderIOReserve()
+    local gap = (rio or reserve > 0) and (ANCHOR_GAP + RIO_GAP) or ANCHOR_GAP
     local offset = tonumber(MPH.db.window.offset) or 0
-    local x = right + ANCHOR_GAP + reserve + offset
+    local x = right + gap + reserve + offset
     local maxX = UIParent:GetWidth() - FRAME_WIDTH - SIDE_TAB_SIZE
     if x > maxX then x = math.max(0, maxX) end
 
     frame:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", x, top)
+    MPH.db.window.lastX = x
+    MPH.db.window.lastTop = top
 
     local key = string.format("%.0f %.0f", x, top)
     if source or key ~= lastAnchor then
-        MPH.Debug("anchor (%s): right %.0f (%s), rio %s, reserve %.0f, offset %d, x %.0f, top %.0f",
+        MPH.Debug("anchor (%s): right %.0f (%s), rio %s, reserve %.0f, gap %d, offset %d, x %.0f, top %.0f",
             tostring(source or "restore"), right, tostring(rightName), rio and "own" or "not own",
-            reserve, offset, x, top)
+            reserve, gap, offset, x, top)
     end
     lastAnchor = key
+end
+
+local FOLLOW_INTERVAL = 0.1
+local followTicker, dragging
+
+local function StopFollow()
+    if not followTicker then return end
+    followTicker:Cancel()
+    followTicker = nil
+end
+
+local function FollowTick()
+    if not frame or not frame:IsShown() or MPH.db.window.point then
+        StopFollow()
+        return
+    end
+    if dragging then return end
+    local ok, err = pcall(AnchorToGroupFinder)
+    if ok then return end
+    StopFollow()
+    MPH.Debug("follow: stopped, %s", tostring(err))
+end
+
+local function StartFollow()
+    if followTicker or MPH.db.window.point then return end
+    followTicker = C_Timer.NewTicker(FOLLOW_INTERVAL, FollowTick)
 end
 
 local function SaveWindowPosition()
@@ -152,10 +198,12 @@ function MPH.RestoreWindowPosition()
     if not frame then return end
     local pos = MPH.db.window
     if pos.point then
+        StopFollow()
         frame:ClearAllPoints()
         frame:SetPoint(pos.point, UIParent, pos.relPoint or pos.point, pos.x, pos.y)
     else
         AnchorToGroupFinder()
+        StartFollow()
     end
 end
 
@@ -163,6 +211,7 @@ function MPH.PinWindowBesideGroupFinder()
     if not frame then return end
     MPH.db.window.point = nil
     AnchorToGroupFinder("pin")
+    StartFollow()
 end
 
 local rioHooked, rioMissingLogged, rioQueued = false, false, false
@@ -233,6 +282,8 @@ function MPH.SelectWindowPage(key)
         if selected then selectedPage = page end
     end
     if key ~= "presets" then MPH.HideCopyBox() end
+    if MPH.RapportHistory then MPH.RapportHistory.Hide() end
+    if MPH.RapportLabels then MPH.RapportLabels.Hide() end
     MPH.SetPageAlert(key, false)
     frame.currentPage = key
     HighlightSideTabs()
@@ -804,10 +855,15 @@ local function CreateWindow()
     frame:SetClampedToScreen(true)
     frame:EnableMouse(true)
     frame:RegisterForDrag("LeftButton")
-    frame:SetScript("OnDragStart", frame.StartMoving)
+    frame:SetScript("OnDragStart", function (self)
+        dragging = true
+        self:StartMoving()
+    end)
     frame:SetScript("OnDragStop", function (self)
+        dragging = false
         self:StopMovingOrSizing()
         SaveWindowPosition()
+        StopFollow()
         MPH.Debug("window: dragged to %.0f, %.0f, follow off", MPH.db.window.x or 0, MPH.db.window.y or 0)
     end)
     frame:SetScript("OnMouseUp", function (_, mouseButton)
@@ -914,12 +970,14 @@ local function CreateWindow()
         end)
     end)
     frame:HookScript("OnHide", function ()
-        MPH.Debug("window: hidden, wanted %s, held %s", tostring(wanted), tostring(held))
+        MPH.Debug("window: hidden, wanted %s, held %s, quiet %s", tostring(wanted), tostring(held),
+            tostring(quietHide))
         wanted = false
         Guard("on hide", function ()
             MPH.HideCopyBox()
-            if held then
+            if held and not quietHide then
                 held = false
+                waitingPanel = false
                 MPH.Teleport.Dismiss()
             end
             MPH.RefreshFinderTab()
@@ -995,9 +1053,16 @@ function MPH.ReleaseWindow()
     if not held then return end
     MPH.Debug("window: release, %s", Describe())
     held = false
+    waitingPanel = false
     if frame and frame:IsShown() and not wanted then
         frame:Hide()
     end
+end
+
+local function HideWindow()
+    quietHide = true
+    frame:Hide()
+    quietHide = false
 end
 
 local function ApplyVisibility()
@@ -1005,23 +1070,27 @@ local function ApplyVisibility()
     local page = MPH.IsGroupFinderPage()
     if onPage and not page then
         wanted = false
+        if held then waitingPanel = true end
     end
-    if page and not onPage and MPH.db.window.autoOpen then
-        if not frame:IsShown() and MPH.db.window.onboarded then
-            pendingPage = "teleport"
+    if page then
+        waitingPanel = false
+        if not onPage and MPH.db.window.autoOpen then
+            if not frame:IsShown() and MPH.db.window.onboarded then
+                pendingPage = "teleport"
+            end
+            wanted = true
         end
-        wanted = true
     end
     onPage = page
 
-    if wanted or held then
+    if wanted or (held and not waitingPanel) then
         MPH.RestoreWindowPosition()
 
         MPH.Progress.RebuildIfChanged()
         MPH.RefreshWindow()
         frame:Show()
     else
-        frame:Hide()
+        HideWindow()
     end
     MPH.RefreshFinderTab()
 end

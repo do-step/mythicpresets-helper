@@ -24,7 +24,8 @@ finder to the dungeons where you actually have a key level to push.
   The New button also works on the raid tab: minimum players, armor type and the most players
   allowed in that armor.
 - **Teleports you to the dungeon.** The Teleport tab offers, one click each, the dungeon of the
-  group you joined or listed and the dungeon of your own keystone, with the shared cooldown.
+  group you joined or listed and the dungeon of your own keystone with its level, with the shared
+  cooldown; the cooldown line says when the portal it counts is your own keystone.
   Below them are a teleport row and a hearthstone row: the mouse wheel cycles through them and
   right-click switches the mode. The teleport row starts on a fixed list (Personal Key to the
   Arcantina, Dandan, Dalaran, racial and class teleports) or picks a random teleport toy. A

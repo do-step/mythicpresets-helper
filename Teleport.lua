@@ -5,10 +5,12 @@ MPH.Teleport = {}
 local DIFFICULTY_KEYSTONE = 8
 local DIFFICULTY_MYTHIC = 23
 local PENDING_TTL = 30 * 60
+local JOIN_TTL = 2 * 60
 local PARTY_SIZE = 5
 
 local FEATURE_EVENTS = {
     "LFG_LIST_JOINED_GROUP",
+    "LFG_LIST_APPLICATION_STATUS_UPDATED",
     "LFG_LIST_ACTIVE_ENTRY_UPDATE",
     "GROUP_ROSTER_UPDATE",
     "PLAYER_ENTERING_WORLD",
@@ -23,7 +25,23 @@ local KEEP_DISMISSED = {
 local SEARCH_SOURCES = {
     listing = true,
     joined = true,
+    joining = true,
     remembered = true,
+}
+
+local JOIN_PENDING = {
+    invited = true,
+    inviteaccepted = true,
+}
+
+local JOIN_LOST = {
+    invitedeclined = true,
+    declined = true,
+    declined_full = true,
+    declined_delisted = true,
+    cancelled = true,
+    timedout = true,
+    none = true,
 }
 
 local IsSecret = issecretvalue or function () return false end
@@ -33,6 +51,7 @@ local current
 local currentSource
 local dismissedCmID
 local dismissedBy
+local joining
 local groupSize = 0
 
 local function Config()
@@ -112,6 +131,48 @@ local function ListingDungeon()
     return ReadDungeon(C_LFGList.GetActiveEntryInfo)
 end
 
+local function IsJoining()
+    return joining ~= nil and time() - joining.at <= JOIN_TTL
+end
+
+local function Latch(source, resultID)
+    if resultID == nil or IsSecret(resultID) then
+        MPH.Debug("teleport: %s latch skipped, result %s", source, MPH.DescribeValue(resultID))
+        return
+    end
+
+    local dungeon, reason = ReadDungeon(function ()
+        return C_LFGList.GetSearchResultInfo(resultID)
+    end)
+    local cmID = dungeon and dungeon.cmID
+    if not cmID and joining and joining.resultID == resultID and joining.cmID then
+        cmID = joining.cmID
+        reason = tostring(reason) .. ", kept " .. MPH.GetDungeonCode(cmID)
+    end
+
+    joining = { resultID = resultID, cmID = cmID, at = time() }
+    MPH.Debug("teleport: %s latch %s, %s", source, tostring(resultID),
+        dungeon and dungeon.code or tostring(reason))
+end
+
+local function DropLatch(reason, resultID)
+    if not joining then return false end
+    if resultID and joining.resultID ~= resultID then return false end
+    MPH.Debug("teleport: latch dropped, %s", reason)
+    joining = nil
+    return true
+end
+
+local function JoiningDungeon()
+    if not joining then return nil, "nothing joined" end
+    if not IsJoining() then return nil, "join expired" end
+    if not joining.cmID then return nil, "join without dungeon" end
+
+    local dungeon = MPH.GetDungeonInfo(joining.cmID)
+    if not dungeon.teleport then return nil, "no teleport for " .. dungeon.code end
+    return dungeon
+end
+
 local function RememberedDungeon(checkTTL)
     local pending = Config().pending
     if not pending then return nil, "nothing remembered" end
@@ -125,6 +186,14 @@ local function RememberedDungeon(checkTTL)
     return dungeon
 end
 
+local function KeystoneLevel()
+    if not C_MythicPlus.GetOwnedKeystoneLevel then return nil end
+
+    local level = C_MythicPlus.GetOwnedKeystoneLevel()
+    if level == nil or IsSecret(level) or level <= 0 then return nil end
+    return level
+end
+
 local function KeystoneDungeon()
     if not C_MythicPlus.GetOwnedKeystoneChallengeMapID then return nil, "no keystone API" end
 
@@ -133,6 +202,7 @@ local function KeystoneDungeon()
 
     local dungeon = MPH.GetDungeonInfo(cmID)
     if not dungeon.teleport then return nil, "no teleport for " .. dungeon.code end
+    dungeon.level = KeystoneLevel()
     return dungeon
 end
 
@@ -149,6 +219,7 @@ end
 
 local SEARCH_CHAIN = {
     { name = "listing", read = ListingDungeon },
+    { name = "joining", read = JoiningDungeon },
     { name = "remembered", read = RememberedDungeon },
 }
 
@@ -172,12 +243,13 @@ local function FindGroupDungeon()
     return nil
 end
 
-local function Offer(dungeon, source)
+local function Offer(dungeon, source, reveal)
     current = dungeon
     currentSource = source
     if SEARCH_SOURCES[source] then Remember(dungeon) end
     MPH.TeleportPage.Refresh()
     if MPH.Teleport.IsEnabled() and MPH.OpenWindowOn then
+        if reveal and MPH.ShowGroupFinder then MPH.ShowGroupFinder() end
         MPH.OpenWindowOn("teleport", true)
     end
 end
@@ -189,6 +261,7 @@ local function Clear(reason)
     if not KEEP_DISMISSED[reason] then
         dismissedCmID = nil
         dismissedBy = nil
+        joining = nil
         Config().pending = nil
     end
     current = nil
@@ -206,12 +279,7 @@ local function Dismiss(reason, cmID)
     Clear(reason)
 end
 
-local function OfferFrom(source, readInfo)
-    local dungeon, reason = ReadDungeon(readInfo)
-    if not dungeon then
-        MPH.Debug("teleport: %s skipped, %s", source, tostring(reason))
-        return
-    end
+local function OfferDungeon(source, dungeon, reveal)
     if IsInDungeon() then
         MPH.Debug("teleport: %s skipped, already in dungeon", source)
         return
@@ -228,12 +296,26 @@ local function OfferFrom(source, readInfo)
         return
     end
 
-    Offer(dungeon, source)
+    Offer(dungeon, source, reveal)
+end
+
+local function OfferFrom(source, readInfo)
+    local dungeon, reason = ReadDungeon(readInfo)
+    if not dungeon then
+        MPH.Debug("teleport: %s skipped, %s", source, tostring(reason))
+        return
+    end
+    OfferDungeon(source, dungeon)
 end
 
 local function OnActiveEntryUpdate()
     if HasListing() then
         OfferFrom("listing", C_LFGList.GetActiveEntryInfo)
+    elseif IsJoining() then
+        local kept = current and current.code
+            or joining.cmID and MPH.GetDungeonCode(joining.cmID)
+            or "-"
+        MPH.Debug("teleport: listing removed while joining, kept %s", kept)
     elseif not IsInGroup() then
         Clear("listing removed")
     end
@@ -244,7 +326,13 @@ local function OnRosterUpdate()
     local filled = size >= PARTY_SIZE and groupSize < PARTY_SIZE
     groupSize = size
 
-    if not IsInGroup() and not HasListing() then return Clear("left group") end
+    if not IsInGroup() and not HasListing() then
+        if IsJoining() then
+            MPH.Debug("teleport: roster empty while joining, kept")
+            return
+        end
+        return Clear("left group")
+    end
     if not filled or IsInDungeon() then return end
 
     local dungeon, source = FindGroupDungeon()
@@ -260,7 +348,7 @@ local function OnRosterUpdate()
     MPH.Debug("teleport: group filled, %s from %s", dungeon.code, source)
     dismissedCmID = nil
     dismissedBy = nil
-    Offer(dungeon, source)
+    Offer(dungeon, source, true)
 end
 
 local function Restore(atLogin)
@@ -287,9 +375,21 @@ end
 events:SetScript("OnEvent", function (_, event, ...)
     if event == "LFG_LIST_JOINED_GROUP" then
         local resultID = ...
-        OfferFrom("joined", function ()
-            return C_LFGList.GetSearchResultInfo(resultID)
-        end)
+        Latch("joined", resultID)
+        local dungeon, reason = JoiningDungeon()
+        if dungeon then
+            OfferDungeon("joined", dungeon, true)
+        else
+            MPH.Debug("teleport: joined skipped, %s", tostring(reason))
+        end
+    elseif event == "LFG_LIST_APPLICATION_STATUS_UPDATED" then
+        local resultID, newStatus = ...
+        if IsSecret(resultID) or IsSecret(newStatus) then return end
+        if JOIN_PENDING[newStatus] then
+            Latch(newStatus, resultID)
+        elseif JOIN_LOST[newStatus] and DropLatch(newStatus, resultID) then
+            if not IsInGroup() and not HasListing() then Clear("invite lost") end
+        end
     elseif event == "LFG_LIST_ACTIVE_ENTRY_UPDATE" then
         OnActiveEntryUpdate()
     elseif event == "GROUP_ROSTER_UPDATE" then
@@ -342,12 +442,16 @@ function MPH.Teleport.Describe()
     end
     local pending = Config().pending
     local search, key = MPH.Teleport.GetDungeons()
-    return string.format("enabled %s, current %s (%s), search %s, key %s, pending %s, dismissed %s (%s), listing %s, party %d; %s",
+    local keyText = key and key.code or "-"
+    if key and key.level then keyText = keyText .. " +" .. tostring(key.level) end
+    return string.format("enabled %s, current %s (%s), search %s, key %s, joining %s (%s), pending %s, dismissed %s (%s), listing %s, party %d; %s",
         tostring(MPH.Teleport.IsEnabled()),
         current and current.code or "-",
         tostring(currentSource),
         search and search.code or "-",
-        key and key.code or "-",
+        keyText,
+        joining and joining.cmID and MPH.GetDungeonCode(joining.cmID) or "-",
+        joining and tostring(joining.resultID) or "-",
         pending and MPH.GetDungeonCode(pending.cmID) or "-",
         dismissedCmID and MPH.GetDungeonCode(dismissedCmID) or "-",
         tostring(dismissedBy),

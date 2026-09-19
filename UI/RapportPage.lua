@@ -103,8 +103,14 @@ end
 
 function MPH.RapportPage.RunTitle(run)
     local dungeon = run and run.mapID and run.mapID > 0 and C_ChallengeMode.GetMapUIInfo(run.mapID)
-    if not dungeon then return L["rapport.lastrun"] end
-    return string.format(L["rapport.titlerun"], dungeon, run.level or 0)
+    if not dungeon then
+        if run and not run.active and MPH.NotEmpty(run.zone) then
+            return string.format(L["rapport.gather"], run.zone)
+        end
+        return L["rapport.lastrun"]
+    end
+    if (run.level or 0) <= 0 then return dungeon end
+    return string.format(L["rapport.titlerun"], dungeon, run.level)
 end
 
 function MPH.RapportPage.RunTime(run)

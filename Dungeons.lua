@@ -24,10 +24,12 @@ MPH.CMID_CODE = {
 
 local dungeonCache = nil
 local activityGroupCache = nil
+local mapNameCache = nil
 
 function MPH.InvalidateDungeons()
     dungeonCache = nil
     activityGroupCache = nil
+    mapNameCache = nil
 end
 
 local function NormalizeName(name)
@@ -36,6 +38,22 @@ local function NormalizeName(name)
     name = name:gsub("^[^:]+:%s*", "")
     name = name:gsub("[%s%-'’,%.]", "")
     return name
+end
+
+function MPH.FindChallengeMapByName(name)
+    local key = NormalizeName(name)
+    if not key then return nil end
+
+    if not mapNameCache then
+        mapNameCache = {}
+        local cmIDs = C_ChallengeMode.GetMapTable()
+        for _, cmID in ipairs(cmIDs or {}) do
+            local mapKey = NormalizeName(C_ChallengeMode.GetMapUIInfo(cmID))
+            if mapKey and not mapNameCache[mapKey] then mapNameCache[mapKey] = cmID end
+        end
+    end
+
+    return mapNameCache[key]
 end
 
 local function BuildActivityGroupMap()

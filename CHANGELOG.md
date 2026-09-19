@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.6
+
+- The joined group's dungeon is kept when its listing closes as the group fills.
+- Keystone row on the teleport tab shows the key level.
+- The teleport cooldown line says when the portal is your own keystone.
+- Crafting materials are left out of the loot list.
+
 ## 0.2.5
 
 - Rapport tab: the party of your last key with role, class, spec and M+ score.
