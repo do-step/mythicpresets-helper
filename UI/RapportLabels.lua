@@ -182,6 +182,13 @@ local function Create()
     tinsert(UISpecialFrames, FRAME_NAME)
 end
 
+function MPH.RapportLabels.Hide()
+    if frame and frame:IsShown() then
+        frame:Hide()
+        MPH.Debug("rapport: labels closed by tab")
+    end
+end
+
 function MPH.RapportLabels.Toggle()
     if not frame then Create() end
     if frame:IsShown() then

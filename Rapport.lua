@@ -16,6 +16,7 @@ local SCORE_DELAY = 4
 local SCORE_ATTEMPTS = 8
 local SCORE_WINDOW = 900
 local SCORE_UNKNOWN = -1
+local DIFFICULTY_KEYSTONE = 8
 
 local events = CreateFrame("Frame")
 local waiting = false
@@ -317,19 +318,53 @@ local function SetWaiting(value)
         events:RegisterEvent("GROUP_ROSTER_UPDATE")
         events:RegisterEvent("UNIT_NAME_UPDATE")
         events:RegisterEvent("INSPECT_READY")
+        events:RegisterEvent("PARTY_MEMBER_ENABLE")
+        events:RegisterEvent("UNIT_CONNECTION")
     else
         events:UnregisterEvent("GROUP_ROSTER_UPDATE")
         events:UnregisterEvent("UNIT_NAME_UPDATE")
         events:UnregisterEvent("INSPECT_READY")
+        events:UnregisterEvent("PARTY_MEMBER_ENABLE")
+        events:UnregisterEvent("UNIT_CONNECTION")
     end
 end
 
-local function ActiveRun()
-    if not C_ChallengeMode.IsChallengeModeActive or not C_ChallengeMode.IsChallengeModeActive() then return nil end
-    local mapID = C_ChallengeMode.GetActiveChallengeMapID()
-    local level = C_ChallengeMode.GetActiveKeystoneInfo()
-    if not mapID or not level or level == 0 then return false end
-    return mapID, level
+local function InstanceZone()
+    local name, instanceType, difficultyID = GetInstanceInfo()
+    name, instanceType, difficultyID = Clean(name), Clean(instanceType), Clean(difficultyID)
+    local keystone = instanceType == "party" and difficultyID == DIFFICULTY_KEYSTONE
+    return MPH.NotEmpty(name) and name or nil, keystone
+end
+
+local function SlottedKeystone()
+    if not C_ChallengeMode.GetSlottedKeystoneInfo then return nil end
+    local ok, mapID, _, level = pcall(C_ChallengeMode.GetSlottedKeystoneInfo)
+    if not ok then return nil end
+    mapID, level = Clean(mapID), Clean(level)
+    if not mapID or mapID == 0 then return nil end
+    return mapID, level or 0
+end
+
+local function Scene()
+    local zone, keystone = InstanceZone()
+
+    if C_ChallengeMode.IsChallengeModeActive and Clean(C_ChallengeMode.IsChallengeModeActive()) then
+        local mapID = Clean(C_ChallengeMode.GetActiveChallengeMapID())
+        local level = Clean((C_ChallengeMode.GetActiveKeystoneInfo()))
+        if not mapID or not level or level == 0 then return "active", nil, nil, zone end
+        return "active", mapID, level, zone
+    end
+
+    if not keystone then return nil end
+
+    local mapID, level = SlottedKeystone()
+    if not mapID then mapID = MPH.FindChallengeMapByName(zone) end
+    return "gather", mapID or 0, level or 0, zone
+end
+
+local function SameDungeon(run, mapID, zone)
+    if mapID and mapID > 0 and (run.mapID or 0) > 0 then return run.mapID == mapID end
+    return MPH.NotEmpty(zone) and run.zone == zone
 end
 
 local TickScores
@@ -427,13 +462,21 @@ local function StartScores(reason)
     PollScores(reason)
 end
 
-local function Save(reason, mapID, level, keep)
+local function Save(reason, stage, mapID, level, zone, keep)
     local store = Store()
     if not keep then
         StopScores("new run")
-        store.current = { mapID = mapID, level = level, startedAt = time(), members = {} }
+        store.current = { mapID = 0, level = 0, startedAt = time(), openedAt = time(), members = {} }
     end
     local run = store.current
+    run.left = nil
+    if MPH.NotEmpty(zone) then run.zone = zone end
+    if mapID and mapID > 0 then run.mapID = mapID end
+    if level and level > 0 then run.level = level end
+    if stage == "active" and not run.active then
+        run.active = true
+        run.startedAt = time()
+    end
 
     local previous = {}
     for _, member in ipairs(run.members) do previous[member.name] = member end
@@ -442,9 +485,9 @@ local function Save(reason, mapID, level, keep)
     local members, missing, inspect = ReadMembers(previous)
     run.members = members
 
-    local trace = string.format("map %s level %s, self %s/%s, members %d, missing %s", tostring(mapID),
-        tostring(level), tostring(run.self.class), tostring(run.self.role), #members,
-        #missing > 0 and table.concat(missing, ", ") or "none")
+    local trace = string.format("%s, map %s level %s, zone %s, self %s/%s, members %d, missing %s", stage,
+        tostring(run.mapID), tostring(run.level), tostring(run.zone), tostring(run.self.class),
+        tostring(run.self.role), #members, #missing > 0 and table.concat(missing, ", ") or "none")
     if trace ~= lastTrace or reason ~= "retry" then
         MPH.Debug("rapport: %s, %s", reason, trace)
         lastTrace = trace
@@ -455,12 +498,12 @@ local function Save(reason, mapID, level, keep)
 end
 
 local function Start(reason)
-    local mapID, level = ActiveRun()
-    if mapID == nil and reason ~= "start" then
-        if reason ~= "resume" then MPH.Debug("rapport: %s, no active run", reason) end
+    local stage, mapID, level, zone = Scene()
+    if not stage then
+        if reason ~= "resume" and reason ~= "enter" then MPH.Debug("rapport: %s, no dungeon", reason) end
         return
     end
-    if not mapID then
+    if stage == "active" and not mapID then
         MPH.Debug("rapport: %s, active, map not ready", reason)
         events:RegisterEvent("WORLD_STATE_TIMER_START")
         return
@@ -468,8 +511,13 @@ local function Start(reason)
     events:UnregisterEvent("WORLD_STATE_TIMER_START")
 
     local run = Store().current
-    local same = run.mapID == mapID and run.level == level
-    Save(reason, mapID, level, reason ~= "start" and same)
+    if stage == "gather" and run.saved and not run.left and SameDungeon(run, mapID, zone) then
+        MPH.Debug("rapport: %s, run here already saved", reason)
+        return
+    end
+
+    local keep = not run.saved and (run.startedAt or 0) > 0 and SameDungeon(run, mapID, zone)
+    Save(reason, stage, mapID, level, zone, keep)
 end
 
 local function Stop(reason)
@@ -510,7 +558,7 @@ local function Complete()
         pending[member.name] = member.score or SCORE_UNKNOWN
         local rated = Entry(member.name)
         if rated then
-            if rated.scoreAt and rated.scoreAt < (run.startedAt or 0) then
+            if rated.scoreAt and rated.scoreAt < (run.openedAt or run.startedAt or 0) then
                 rated.prevScore, rated.prevAt = rated.score, rated.scoreAt
             end
             rated.score, rated.scoreAt = member.score, time()
@@ -550,14 +598,19 @@ function Rapport.Describe()
     local rated, pending = 0, 0
     for _ in pairs(Store().players) do rated = rated + 1 end
     for _ in pairs(run.pending or {}) do pending = pending + 1 end
-    return string.format("map %s level %s, members %d, saved %s, history %d, waiting %s, rated %d, pending %d",
-        tostring(run.mapID), tostring(run.level), #run.members, tostring(run.saved), #store.history,
+    local stage, mapID, level, zone = Scene()
+    return string.format("stage %s (map %s level %s, zone %s), run map %s level %s active %s, members %d, "
+        .. "saved %s, history %d, waiting %s, rated %d, pending %d",
+        tostring(stage), tostring(mapID), tostring(level), tostring(zone), tostring(run.mapID),
+        tostring(run.level), tostring(run.active), #run.members, tostring(run.saved), #store.history,
         tostring(waiting), rated, pending)
 end
 
 events:SetScript("OnEvent", function (_, event, ...)
     if event == "CHALLENGE_MODE_START" then
         Start("start")
+    elseif event == "CHALLENGE_MODE_KEYSTONE_SLOTTED" then
+        Start("keystone")
     elseif event == "WORLD_STATE_TIMER_START" then
         Start("timer")
     elseif event == "CHALLENGE_MODE_COMPLETED" then
@@ -567,20 +620,25 @@ events:SetScript("OnEvent", function (_, event, ...)
         PollScores("maps update")
     elseif event == "PLAYER_ENTERING_WORLD" then
         local isLogin, isReload = ...
+        local inside = Scene() ~= nil
+        if not inside then Store().current.left = true end
         if isLogin or isReload then
             Start("resume")
             StartScores("resume")
-        elseif not ActiveRun() then
-            Stop("left dungeon")
-            PollScores("left dungeon")
+        else
+            Start("enter")
+            if not inside then
+                Stop("left dungeon")
+                PollScores("left dungeon")
+            end
         end
     elseif waiting then
         if event == "INSPECT_READY" and ClearInspectPlayer then ClearInspectPlayer() end
-        local mapID, level = ActiveRun()
-        if mapID then
-            Save("retry", mapID, level, true)
-        elseif mapID == nil then
+        local stage, mapID, level, zone = Scene()
+        if not stage then
             Stop("run ended")
+        elseif stage == "gather" or mapID then
+            Save("retry", stage, mapID, level, zone, true)
         end
     end
 end)
@@ -588,7 +646,7 @@ end)
 function Rapport.Reset()
     StopScores("reset")
     local store = Store()
-    store.current = { mapID = 0, level = 0, startedAt = 0, members = {} }
+    store.current = { mapID = 0, level = 0, startedAt = 0, openedAt = 0, members = {} }
     store.history = {}
     store.players = {}
     store.schema = SCHEMA
@@ -613,6 +671,7 @@ table.insert(MPH.onLogin, function ()
     end
 
     events:RegisterEvent("CHALLENGE_MODE_START")
+    events:RegisterEvent("CHALLENGE_MODE_KEYSTONE_SLOTTED")
     events:RegisterEvent("CHALLENGE_MODE_COMPLETED")
     events:RegisterEvent("PLAYER_ENTERING_WORLD")
 end)

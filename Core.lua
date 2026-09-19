@@ -250,6 +250,27 @@ function MPH.OpenGroupSearch(categoryID)
     MPH.Debug("group search: category %s, %s", tostring(categoryID), ok and "opened" or tostring(err))
 end
 
+function MPH.ShowGroupFinder()
+    if not PVEFrame or not LFGListPVEStub or not PVEFrame_ShowFrame or not PVEFrame_ToggleFrame then
+        return false
+    end
+    if MPH.IsGroupFinderPage() then return true end
+    if InCombatLockdown() then
+        MPH.Debug("group finder: not opened, in combat")
+        return false
+    end
+
+    local ok, err = pcall(function ()
+        if PVEFrame:IsShown() then
+            PVEFrame_ShowFrame("GroupFinderFrame", LFGListPVEStub)
+        else
+            PVEFrame_ToggleFrame("GroupFinderFrame", LFGListPVEStub)
+        end
+    end)
+    MPH.Debug("group finder: %s", ok and "opened" or tostring(err))
+    return ok
+end
+
 function MPH.GetSearchCategory()
     if not LFGListFrame then return nil end
 

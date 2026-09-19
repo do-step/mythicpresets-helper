@@ -31,6 +31,11 @@ local SLOT_WORD = {
     INVTYPE_SHIELD = "shield",
 }
 
+local SKIP_CLASS = {
+    [Enum.ItemClass.Tradegoods] = true,
+    [Enum.ItemClass.Reagent] = true,
+}
+
 local TEST_SLOTS = { 10, 7, 13, 16 }
 local TEST_NAME = "Fera"
 local TEST_CLASS = "EVOKER"
@@ -45,8 +50,17 @@ local function Refresh()
     if MPH.LootPage then MPH.LootPage.Refresh() end
 end
 
+local function IsMaterial(link)
+    local ok, _, _, _, _, _, classID = pcall(C_Item.GetItemInfoInstant, link)
+    return ok and SKIP_CLASS[classID] == true
+end
+
 function Loot.Items()
-    return Store().items
+    local items = Store().items
+    for index = #items, 1, -1 do
+        if IsMaterial(items[index].link) then table.remove(items, index) end
+    end
+    return items
 end
 
 function Loot.Run()
@@ -170,6 +184,10 @@ local function OnLoot(_, itemID, link, _, player, class)
         return
     end
     if not link or not player then return end
+    if IsMaterial(link) then
+        MPH.Debug("loot: material skipped, %s", link)
+        return
+    end
     if IsSecret(class) then class = nil end
 
     MPH.Debug("loot: %s -> %s", link, player)

@@ -27,6 +27,13 @@ function MPH.RapportHistory.IsLocked()
     return MPH.db.rapport.lockHistory ~= false
 end
 
+function MPH.RapportHistory.Hide()
+    if frame and frame:IsShown() then
+        frame:Hide()
+        MPH.Debug("rapport: history closed by tab")
+    end
+end
+
 function MPH.RapportHistory.WheelScroll(delta)
     if not frame then return end
     local script = frame.Scroll:GetScript("OnMouseWheel")

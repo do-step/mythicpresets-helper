@@ -399,10 +399,11 @@ local function UpdateState()
     UpdateTravel()
     UpdateStone()
 
-    local spellID
+    local spellID, keystone
     for _, row in ipairs(rows) do
         if row.dungeon and UpdateRow(row) and not spellID then
             spellID = row.dungeon.teleport
+            keystone = row.keystone
         end
     end
 
@@ -414,14 +415,13 @@ local function UpdateState()
     end
 
     local remaining = GetSpellRemaining(spellID)
+    page.Status:SetText(StatusText(remaining,
+        keystone and GRAY_FONT_COLOR:WrapTextInColorCode(L["teleport.key"]) or nil))
+    page.Status:SetTextColor(GRAY_FONT_COLOR:GetRGB())
     if remaining > 0 then
-        page.Status:SetText(string.format(L["teleport.cooldown"], FormatRemaining(remaining)))
-        page.Status:SetTextColor(ORANGE_FONT_COLOR:GetRGB())
         page.StatusHit:SetWidth(STATUS_ICON_SIZE + 6 + page.Status:GetStringWidth())
         page.StatusHit:Show()
     else
-        page.Status:SetText(L["teleport.ready"])
-        page.Status:SetTextColor(GREEN_FONT_COLOR:GetRGB())
         page.StatusHit:Hide()
     end
 end
@@ -577,10 +577,13 @@ function MPH.TeleportPage.Refresh()
     for index, row in ipairs(rows) do
         local entry = entries[index]
         row.dungeon = entry and entry.dungeon
+        row.keystone = entry and entry.label == "teleport.key"
         row.known = nil
         row:SetShown(entry ~= nil)
         if entry then
-            row.Label:SetText(L[entry.label])
+            row.Label:SetText(entry.dungeon.level
+                and string.format("%s +%d", L[entry.label], entry.dungeon.level)
+                or L[entry.label])
             row.Icon:SetTexture(C_Spell.GetSpellTexture(entry.dungeon.teleport) or entry.dungeon.texture)
             row.Name:SetText(string.format("%s (%s)", entry.dungeon.name, entry.dungeon.code))
         end
