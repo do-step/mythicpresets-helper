@@ -227,6 +227,15 @@ local function CategoryFilters(selection, categoryID)
     return 0
 end
 
+local function ShowFinderFrame()
+    if PVEFrame:IsShown() then
+        PVEFrame_ShowFrame("GroupFinderFrame", LFGListPVEStub)
+    else
+        PVEFrame_ToggleFrame("GroupFinderFrame", LFGListPVEStub)
+    end
+    if PVEFrame.activeTabIndex == 1 then PVEFrame.activeTabIndex = nil end
+end
+
 function MPH.OpenGroupSearch(categoryID)
     if not LFGListFrame or not LFGListPVEStub or not PVEFrame_ShowFrame then return end
     if InCombatLockdown() then return end
@@ -237,11 +246,7 @@ function MPH.OpenGroupSearch(categoryID)
 
     local listed = C_LFGList.HasActiveEntryInfo and C_LFGList.HasActiveEntryInfo()
     local ok, err = pcall(function ()
-        if PVEFrame:IsShown() then
-            PVEFrame_ShowFrame("GroupFinderFrame", LFGListPVEStub)
-        else
-            PVEFrame_ToggleFrame("GroupFinderFrame", LFGListPVEStub)
-        end
+        ShowFinderFrame()
         if listed then return end
         local selection = LFGListFrame.CategorySelection
         LFGListCategorySelection_SelectCategory(selection, categoryID, CategoryFilters(selection, categoryID))
@@ -260,13 +265,7 @@ function MPH.ShowGroupFinder()
         return false
     end
 
-    local ok, err = pcall(function ()
-        if PVEFrame:IsShown() then
-            PVEFrame_ShowFrame("GroupFinderFrame", LFGListPVEStub)
-        else
-            PVEFrame_ToggleFrame("GroupFinderFrame", LFGListPVEStub)
-        end
-    end)
+    local ok, err = pcall(ShowFinderFrame)
     MPH.Debug("group finder: %s", ok and "opened" or tostring(err))
     return ok
 end
@@ -354,6 +353,13 @@ eventFrame:SetScript("OnEvent", function (_, event, arg1)
             end
         end
     end
+end)
+
+local blockedEvents = CreateFrame("Frame")
+blockedEvents:RegisterEvent("ADDON_ACTION_BLOCKED")
+blockedEvents:RegisterEvent("ADDON_ACTION_FORBIDDEN")
+blockedEvents:SetScript("OnEvent", function (_, event, addon, func)
+    MPH.Debug("blocked: %s, addon %s, func %s", event, tostring(addon), tostring(func))
 end)
 
 local function DescribeValue(value)

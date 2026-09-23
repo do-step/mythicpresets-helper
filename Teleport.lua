@@ -423,8 +423,41 @@ function MPH.Teleport.Dismiss()
     Dismiss("closed")
 end
 
+local function ActiveLevel()
+    if not C_ChallengeMode.GetActiveKeystoneInfo then return nil end
+    local level = C_ChallengeMode.GetActiveKeystoneInfo()
+    if level == nil or IsSecret(level) or level <= 0 then return nil end
+    return level
+end
+
+local function HereDungeon()
+    local cmID = C_ChallengeMode.GetActiveChallengeMapID and C_ChallengeMode.GetActiveChallengeMapID()
+    if cmID ~= nil and not IsSecret(cmID) and cmID ~= 0 then
+        local dungeon = MPH.GetDungeonInfo(cmID)
+        if not dungeon.teleport then return nil, "no teleport for " .. dungeon.code end
+        dungeon.level = ActiveLevel()
+        return dungeon, "challenge"
+    end
+
+    local instanceID = select(8, GetInstanceInfo())
+    if instanceID == nil or IsSecret(instanceID) then return nil, "no instance" end
+    for _, dungeon in ipairs(MPH.GetSeasonDungeons()) do
+        if dungeon.mapID == instanceID and dungeon.teleport then return dungeon, "instance" end
+    end
+    return nil, "instance " .. tostring(instanceID) .. " not in season"
+end
+
 function MPH.Teleport.GetDungeons()
-    if IsInDungeon() then return nil, nil, "teleport.indungeon" end
+    if IsInDungeon() then
+        local here, reason = HereDungeon()
+        if not here then
+            MPH.Debug("teleport: here unavailable, %s", tostring(reason))
+            return nil, nil, "teleport.indungeon"
+        end
+        local key = KeystoneDungeon()
+        if key and key.cmID == here.cmID then key = nil end
+        return here, key, nil, true
+    end
 
     local search = SearchDungeon()
     local key = KeystoneDungeon()

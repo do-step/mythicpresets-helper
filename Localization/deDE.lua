@@ -124,6 +124,7 @@ L["teleport.nodungeon"] = "Kein Dungeon aus der Suche und kein eigener Schlüsse
 L["teleport.search"]    = "Aus der Suche"
 L["teleport.key"]       = "Mein Schlüsselstein"
 L["teleport.indungeon"] = "Ihr seid bereits in einem Dungeon."
+L["teleport.here"]      = "Aktueller Dungeon"
 L["teleport.destination"] = "%s (%s)"
 L["teleport.toyplace"]  = "Silbermond"
 L["teleport.stone"]     = "Ruhestein"

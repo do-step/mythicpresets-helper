@@ -116,6 +116,7 @@ L["teleport.nodungeon"]  = "검색에서 고른 던전도, 내 쐐기돌도 없�
 L["teleport.search"]     = "검색에서"
 L["teleport.key"]        = "내 쐐기돌"
 L["teleport.indungeon"]  = "이미 던전 안에 있습니다."
+L["teleport.here"]       = "현재 던전"
 L["teleport.destination"] = "%1$s (%2$s)"
 L["teleport.toyplace"]   = "실버문"
 L["teleport.stone"]      = "귀환석"

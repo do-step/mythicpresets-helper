@@ -569,9 +569,11 @@ function MPH.TeleportPage.Refresh()
         return
     end
 
-    local search, key, reason = MPH.Teleport.GetDungeons()
+    local search, key, reason, here = MPH.Teleport.GetDungeons()
     local entries = {}
-    if search then table.insert(entries, { dungeon = search, label = "teleport.search" }) end
+    if search then
+        table.insert(entries, { dungeon = search, label = here and "teleport.here" or "teleport.search" })
+    end
     if key then table.insert(entries, { dungeon = key, label = "teleport.key" }) end
 
     for index, row in ipairs(rows) do

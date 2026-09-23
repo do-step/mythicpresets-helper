@@ -116,6 +116,7 @@ L["teleport.nodungeon"]  = "Nessuna spedizione dalla ricerca e nessuna chiave tu
 L["teleport.search"]     = "Dalla ricerca"
 L["teleport.key"]        = "La mia chiave"
 L["teleport.indungeon"]  = "Sei già in una spedizione."
+L["teleport.here"]       = "Spedizione attuale"
 L["teleport.destination"] = "%s (%s)"
 L["teleport.toyplace"]   = "Lunargenta"
 L["teleport.stone"]      = "Pietra del Ritorno"

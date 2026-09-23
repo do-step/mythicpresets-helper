@@ -122,6 +122,7 @@ L["teleport.nodungeon"] = "No dungeon from the search and no keystone of your ow
 L["teleport.search"]    = "From search"
 L["teleport.key"]       = "My keystone"
 L["teleport.indungeon"] = "You are already in a dungeon."
+L["teleport.here"]      = "This dungeon"
 L["teleport.destination"] = "%s (%s)"
 L["teleport.toyplace"]  = "Silvermoon"
 L["teleport.stone"]     = "Hearthstone"
