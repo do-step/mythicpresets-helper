@@ -125,6 +125,7 @@ L["teleport.nodungeon"] = "Нет подземелья из поиска и не
 L["teleport.search"]    = "Из поиска"
 L["teleport.key"]       = "Мой ключ"
 L["teleport.indungeon"] = "Вы уже в подземелье."
+L["teleport.here"]     = "Текущее подземелье"
 L["teleport.destination"] = "%s (%s)"
 L["teleport.toyplace"]  = "Луносвет"
 L["teleport.stone"]     = "Камень возвращения"

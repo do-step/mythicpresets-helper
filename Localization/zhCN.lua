@@ -116,6 +116,7 @@ L["teleport.nodungeon"]  = "没有来自搜索的地下城，也没有你自己�
 L["teleport.search"]     = "来自搜索"
 L["teleport.key"]        = "我的钥石"
 L["teleport.indungeon"]  = "你已经在地下城中。"
+L["teleport.here"]       = "当前地下城"
 L["teleport.destination"] = "%1$s（%2$s）"
 L["teleport.toyplace"]   = "银月城"
 L["teleport.stone"]      = "炉石"

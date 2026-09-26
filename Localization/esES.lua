@@ -116,6 +116,7 @@ L["teleport.nodungeon"]  = "No hay mazmorra de la búsqueda ni piedra angular pr
 L["teleport.search"]     = "De la búsqueda"
 L["teleport.key"]        = "Mi piedra"
 L["teleport.indungeon"]  = "Ya estás en una mazmorra."
+L["teleport.here"]       = "Mazmorra actual"
 L["teleport.destination"] = "%s (%s)"
 L["teleport.toyplace"]   = "Lunargenta"
 L["teleport.stone"]      = "Piedra de hogar"

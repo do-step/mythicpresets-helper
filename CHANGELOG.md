@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.7
+
+- Teleport tab shows the portal of the dungeon you are in, with its cooldown.
+- Group finder hotkey works in combat after the addon opened it.
+
 ## 0.2.6
 
 - The joined group's dungeon is kept when its listing closes as the group fills.

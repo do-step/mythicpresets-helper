@@ -116,6 +116,7 @@ L["teleport.nodungeon"]  = "Aucun donjon issu de la recherche et aucune clé à 
 L["teleport.search"]     = "De la recherche"
 L["teleport.key"]        = "Ma clé"
 L["teleport.indungeon"]  = "Vous êtes déjà dans un donjon."
+L["teleport.here"]       = "Donjon actuel"
 L["teleport.destination"] = "%s (%s)"
 L["teleport.toyplace"]   = "Lune-d'argent"
 L["teleport.stone"]      = "Pierre de foyer"
