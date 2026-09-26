@@ -45,15 +45,24 @@ finder to the dungeons where you actually have a key level to push.
   reagents, are listed separately and grayed out. Above the list is a thank-you button for the
   group, with its own text on each character. After a timed key the thank-you can also go out
   by itself, turn that on in the settings.
-- **Remembers who you played with.** When a key starts, the Rapport tab records the party: name,
-  role, class, spec and each player's M+ score at that moment. The mouse wheel over the role icon
+- **Remembers who you played with.** As soon as you join a group, the Rapport tab records the
+  party: name, role, class, spec and, when the key starts, each player's M+ score. Players who
+  leave before the start go to the Recent list. The mouse wheel over the role icon
   rates the role, over the rest of the row it rates their play, three levels each, with your own
   wording set in the rating preset. Finished keys go to the key history, where any run can be
   unfolded, and on your next key together the row also shows the score from the previous one.
-  Ratings show up in the player tooltip in game.
+  A key you left or abandoned is kept in the history as unfinished. Ratings show up in the
+  player tooltip in game.
 - **Keeps Lua errors out of the way.** While a Mythic+ key or a raid boss fight is in progress,
   the Lua error window of any addon does not pop up. It opens once the key or the fight ends,
   and chat tells how many errors were hidden. On by default.
+- **Picks the playstyle for your group.** When you start a group in the group finder, the
+  required playstyle is already chosen. By default it is the relaxed one; the settings offer
+  another or none. A playstyle you picked yourself is left as is.
+- **Fills the group requirements.** When you start a key group, your M+ score goes into the
+  minimum rating field; if the group already has players, the lowest score among them. When
+  you start a group on your own, your equipped item level goes into the minimum item level
+  field. Values you typed yourself are left as is. Both can be turned off in the settings.
 
 ## How to use
 
@@ -78,8 +87,9 @@ title puts it back beside the group finder, where it moves along when your Raide
 changes width.
 
 Settings → AddOns → MythicPresets Helper has a button for the help page, auto-opening of the
-addon window, of the Teleport tab and of the Chat and loot presets tab, the automatic thank-you and
-hiding Lua errors during keys and raid boss fights.
+addon window, of the Teleport tab and of the Chat and loot presets tab, the automatic thank-you,
+hiding Lua errors during keys and raid boss fights, the playstyle for new groups and filling in
+your M+ score and item level.
 
 ## Why you type the keystone level yourself
 
@@ -171,15 +181,23 @@ https://t.me/p_y_c_h/3
   например материалы для ремесла, идут отдельным списком и показаны серым. Над списком кнопка
   благодарности группе, текст у каждого персонажа свой. После ключа в тайм благодарность может
   уходить сама, это включается в настройках.
-- **Помнит, с кем вы играли.** На старте ключа вкладка Rapport записывает состав: ник, роль,
-  класс, специализацию и рейтинг M+ каждого на тот момент. Колесико над иконкой роли меняет
+- **Помнит, с кем вы играли.** Как только вы вступили в группу, вкладка Rapport записывает
+  состав: ник, роль, класс, специализацию, а на старте ключа и рейтинг M+ каждого. Кто ушёл до
+  старта, попадает в список «Недавние». Колесико над иконкой роли меняет
   оценку роли, над остальной строкой общую оценку, по три ступени, а тексты оценок задаются в
   пресете. Завершённые ключи попадают в историю, где любой из них раскрывается по клику, и при
-  следующей встрече в строке виден рейтинг с прошлого ключа. Оценка видна и в тултипе
-  персонажа в игре.
+  следующей встрече в строке виден рейтинг с прошлого ключа. Брошенный ключ остаётся в истории
+  с пометкой «не завершён». Оценка видна и в тултипе персонажа в игре.
 - **Не отвлекает ошибками Lua.** Пока идёт ключ M+ или бой с рейдовым боссом, окно ошибок Lua
   от любых аддонов не всплывает. Оно откроется после завершения ключа или боя, а в чате будет
   число скрытых ошибок. Включено по умолчанию.
+- **Выбирает стиль игры для вашей группы.** Когда вы собираете группу через поиск групп,
+  обязательный стиль игры уже выбран: по умолчанию «Непринужденный», в настройках можно
+  выбрать другой или отключить. Стиль, выбранный вами, аддон не меняет.
+- **Заполняет требования к группе.** Когда вы собираете группу на ключ, в поле минимального
+  рейтинга вписывается ваш рейтинг M+, а если в группе уже есть игроки, самый низкий из них.
+  Когда вы собираете группу в одиночку, в поле минимального уровня предметов вписывается ваш
+  уровень надетых предметов. Вписанное вами аддон не меняет. Оба пункта отключаются в настройках.
 
 ## Как пользоваться
 
@@ -203,8 +221,9 @@ https://t.me/p_y_c_h/3
 вашего профиля Raider.IO.
 
 В «Настройки → AddOns → MythicPresets Helper» есть кнопка инструкции, автооткрытие окна
-аддона, вкладок «Телепорт» и «Пресеты чата и лута», автоматическая благодарность группе и
-скрытие ошибок Lua в ключе и в бою с рейдовым боссом.
+аддона, вкладок «Телепорт» и «Пресеты чата и лута», автоматическая благодарность группе,
+скрытие ошибок Lua в ключе и в бою с рейдовым боссом, стиль игры для новых групп и вписывание
+рейтинга M+ и уровня предметов.
 
 С EllesmereUI окна и вкладки аддона выглядят в его стиле. Скин отключается для этого аддона в
 настройках EllesmereUI: Blizz UI Enhanced, Blizzard Window Skins, Third-Party Addons.

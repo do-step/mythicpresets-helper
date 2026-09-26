@@ -466,6 +466,14 @@ function MPH.Teleport.GetDungeons()
     return search, key
 end
 
+function MPH.Teleport.GroupDungeon()
+    if current and SEARCH_SOURCES[currentSource] then return current end
+    if not MPH.db then return nil end
+    local pending = Config().pending
+    if not pending or not pending.cmID or not pending.at or time() - pending.at > PENDING_TTL then return nil end
+    return MPH.GetDungeonInfo(pending.cmID)
+end
+
 function MPH.Teleport.Describe()
     local parts = {}
     for _, dungeon in ipairs(MPH.GetSeasonDungeons()) do
