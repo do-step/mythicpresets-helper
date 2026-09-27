@@ -1,6 +1,6 @@
 ## Interface: 120100
 ## Title: MythicPresets Helper
-## Version: 0.2.7
+## Version: 0.2.8
 ## IconTexture: 525134
 ## Author: Pych
 ## SavedVariables: MythicPresetsHelperDB, MythicPresetsHelperLog
@@ -67,9 +67,11 @@ Thanks.lua
 Loot.lua
 Rapport.lua
 Errors.lua
+Playstyle.lua
 Settings.lua
 UI\Skin.lua
 UI\CopyBox.lua
+UI\LogCopy.lua
 UI\PresetList.lua
 UI\PresetEdit.lua
 UI\RaidEdit.lua

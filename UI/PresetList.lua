@@ -934,6 +934,9 @@ local function CreateWindow()
     frame.ClearLogButton = DebugButton(frame.ProbeButton, "Interface\\Buttons\\UI-GroupLoot-Pass-Up", function ()
         MPH.ClearLog()
     end)
+    frame.LogCopyButton = DebugButton(frame.ClearLogButton, "Interface\\Icons\\INV_Misc_Note_06", function ()
+        MPH.ShowLogCopy()
+    end)
 
     local index, bottomIndex = 0, 0
     for _, page in ipairs(pages) do
@@ -993,6 +996,7 @@ function MPH.RefreshDebugButtons()
     frame.DebugOffButton:SetShown(shown)
     frame.ProbeButton:SetShown(shown)
     frame.ClearLogButton:SetShown(shown)
+    frame.LogCopyButton:SetShown(shown)
 end
 
 function MPH.ToggleWindow()

@@ -10,6 +10,12 @@ local BUTTON_HEIGHT = 22
 local GEAR_SIZE = 20
 local GEAR_GAP = 8
 local HIT_PADDING = 3
+local SCROLLBAR_WIDTH = 28
+local LEFT_HEADER_HEIGHT = 22
+local LEFT_INDENT = 12
+local TOGGLE_SIZE = 14
+local TOGGLE_OPEN = "Interface\\Buttons\\UI-MinusButton-Up"
+local TOGGLE_CLOSED = "Interface\\Buttons\\UI-PlusButton-Up"
 
 local ROLE_ATLAS = {
     TANK = "UI-LFG-RoleIcon-Tank",
@@ -21,9 +27,11 @@ MPH.RapportPage = {}
 
 local page
 local rows = {}
+local leftOpen = false
 
 local function PlayerName(member)
     local name = Ambiguate(member.name, "none")
+    if member.left then return GRAY_FONT_COLOR:WrapTextInColorCode(name) end
     local color = member.class and C_ClassColor.GetClassColor(member.class)
     return color and color:WrapTextInColorCode(name) or name
 end
@@ -103,12 +111,12 @@ end
 
 function MPH.RapportPage.RunTitle(run)
     local dungeon = run and run.mapID and run.mapID > 0 and C_ChallengeMode.GetMapUIInfo(run.mapID)
-    if not dungeon then
-        if run and not run.active and MPH.NotEmpty(run.zone) then
-            return string.format(L["rapport.gather"], run.zone)
-        end
-        return L["rapport.lastrun"]
+    if MPH.Rapport.IsGathering(run) then
+        local place = MPH.NotEmpty(run.zone) and run.zone or dungeon
+        if MPH.NotEmpty(place) then return string.format(L["rapport.gather"], place) end
+        return L["rapport.gathering"]
     end
+    if not dungeon then return L["rapport.lastrun"] end
     if (run.level or 0) <= 0 then return dungeon end
     return string.format(L["rapport.titlerun"], dungeon, run.level)
 end
@@ -182,29 +190,80 @@ function MPH.RapportPage.FillPlayerRow(row, member)
     row:Show()
 end
 
+function MPH.RapportPage.CreateLeftHeader(parent, onClick)
+    local header = CreateFrame("Button", nil, parent)
+    header:SetHeight(LEFT_HEADER_HEIGHT)
+    header:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD")
+
+    header.Toggle = header:CreateTexture(nil, "ARTWORK")
+    header.Toggle:SetSize(TOGGLE_SIZE, TOGGLE_SIZE)
+    header.Toggle:SetPoint("LEFT", header, "LEFT", 4, 0)
+
+    header.Text = header:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    header.Text:SetPoint("LEFT", header.Toggle, "RIGHT", 6, 0)
+    header.Text:SetPoint("RIGHT", header, "RIGHT", -6, 0)
+    header.Text:SetJustifyH("LEFT")
+    header.Text:SetWordWrap(false)
+
+    header:SetScript("OnClick", onClick)
+    header:SetScript("OnEnter", function (self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText(self.Text:GetText())
+        AddGrayLine(L["rapport.leftdesc"])
+        GameTooltip:Show()
+    end)
+    header:SetScript("OnLeave", GameTooltip_Hide)
+    return header
+end
+
+function MPH.RapportPage.FillLeftHeader(header, count, open)
+    header.Toggle:SetTexture(open and TOGGLE_OPEN or TOGGLE_CLOSED)
+    header.Text:SetText(string.format(L["rapport.leftlist"], count))
+    header:Show()
+end
+
+local function Place(region, y, indent)
+    region:ClearAllPoints()
+    region:SetPoint("TOPLEFT", page.child, "TOPLEFT", indent or 0, -y)
+    region:SetPoint("RIGHT", page.child, "RIGHT", 0, 0)
+end
+
 function MPH.RapportPage.Refresh()
     if not page or not page:IsVisible() then return end
 
     local run = MPH.Rapport.Current()
     page.RunLabel:SetText(MPH.RapportPage.RunTitle(run))
     page.Time:SetText(MPH.RapportPage.RunTime(run))
+    page.child:SetWidth(page.Scroll:GetWidth())
 
     local members = MPH.Rapport.Members(run)
-    local y = 0
-    for index, member in ipairs(members) do
-        rows[index] = rows[index] or MPH.RapportPage.CreatePlayerRow(page)
-        local row = rows[index]
-        row:ClearAllPoints()
-        row:SetPoint("TOPLEFT", page.RunLabel, "BOTTOMLEFT", 0, -8 - y)
-        row:SetPoint("RIGHT", page, "RIGHT", -20, 0)
-        MPH.RapportPage.FillPlayerRow(row, member)
+    local gone = MPH.Rapport.Left(run)
+    local y, count = 0, 0
+    local function Add(member, indent)
+        count = count + 1
+        rows[count] = rows[count] or MPH.RapportPage.CreatePlayerRow(page.child)
+        Place(rows[count], y, indent)
+        MPH.RapportPage.FillPlayerRow(rows[count], member)
         y = y + ROW_HEIGHT + ROW_GAP
     end
-    for index = #members + 1, #rows do
+
+    for _, member in ipairs(members) do Add(member) end
+    if #gone > 0 then
+        Place(page.LeftHeader, y)
+        MPH.RapportPage.FillLeftHeader(page.LeftHeader, #gone, leftOpen)
+        y = y + LEFT_HEADER_HEIGHT + ROW_GAP
+        if leftOpen then
+            for _, member in ipairs(gone) do Add(member, LEFT_INDENT) end
+        end
+    else
+        page.LeftHeader:Hide()
+    end
+    for index = count + 1, #rows do
         rows[index]:Hide()
     end
 
-    page.Empty:SetShown(#members == 0)
+    page.child:SetHeight(math.max(1, y))
+    page.Empty:SetShown(#members == 0 and #gone == 0)
 end
 
 local function Build(container)
@@ -222,6 +281,22 @@ local function Build(container)
 
     page.Time = page:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
     page.Time:SetPoint("BOTTOMRIGHT", page.RunLabel, "BOTTOMRIGHT", TIME_WIDTH, 0)
+
+    page.Scroll = CreateFrame("ScrollFrame", "MythicPresetsHelperRapportScrollFrame", page, "ScrollFrameTemplate")
+    page.Scroll:SetPoint("TOPLEFT", page.RunLabel, "BOTTOMLEFT", 0, -8)
+    page.Scroll:SetPoint("BOTTOMRIGHT", page, "BOTTOMRIGHT", -SCROLLBAR_WIDTH, BUTTON_HEIGHT + 14)
+    MPH.SkinScroll(page.Scroll)
+
+    page.child = CreateFrame("Frame", nil, page.Scroll)
+    page.child:SetSize(1, 1)
+    page.Scroll:SetScrollChild(page.child)
+    page.Scroll:SetScript("OnSizeChanged", MPH.RapportPage.Refresh)
+
+    page.LeftHeader = MPH.RapportPage.CreateLeftHeader(page.child, function ()
+        leftOpen = not leftOpen
+        MPH.RapportPage.Refresh()
+    end)
+    page.LeftHeader:Hide()
 
     page.Empty = page:CreateFontString(nil, "ARTWORK", "GameFontDisable")
     page.Empty:SetPoint("TOPLEFT", page.RunLabel, "BOTTOMLEFT", 0, -16)

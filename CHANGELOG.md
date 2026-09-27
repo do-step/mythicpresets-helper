@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.8
+
+- Playstyle for new groups is picked in advance, set in the addon settings.
+- New groups get your M+ score and item level as minimum requirements.
+- Rapport records the party from the moment you join a group.
+- Rapport keeps players who left before the key started in the Recent list.
+- Unfinished keys stay in the key history.
+
 ## 0.2.7
 
 - Teleport tab shows the portal of the dungeon you are in, with its cooldown.

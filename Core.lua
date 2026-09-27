@@ -73,9 +73,16 @@ local DB_DEFAULTS = {
     errors = {
         enabled = true,
     },
+    playstyle = {
+        value = 2,
+    },
+    requirements = {
+        score = true,
+        itemLevel = true,
+    },
 }
 
-MPH.THANKS_DEFAULT = "ty bb (auto-sent by MPH addon) <3"
+MPH.THANKS_DEFAULT = "gg ty <3 btw, try Mythic Presets Helper o/"
 
 local CHAR_DEFAULTS = {
     thanks = {

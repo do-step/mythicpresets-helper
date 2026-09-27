@@ -13,6 +13,7 @@ local PARTY_SIZE = 5
 local PLAYER_INDENT = 12
 local PLAYER_HEIGHT = 54
 local PLAYER_GAP = 4
+local LEFT_HEADER_HEIGHT = 22
 local BUTTON_HEIGHT = 22
 local CHECK_SIZE = 22
 
@@ -21,7 +22,9 @@ MPH.RapportHistory = {}
 local frame
 local headers = {}
 local players = {}
+local leftHeaders = {}
 local expanded = {}
+local expandedLeft = {}
 
 function MPH.RapportHistory.IsLocked()
     return MPH.db.rapport.lockHistory ~= false
@@ -76,7 +79,9 @@ end
 
 local function FillHeader(header, run)
     header.run = run
-    header.Title:SetText(MPH.RapportPage.RunTitle(run))
+    local title = MPH.RapportPage.RunTitle(run)
+    if run.unfinished then title = string.format(L["rapport.unfinished"], title) end
+    header.Title:SetText(title)
     local color = run.onTime and HIGHLIGHT_FONT_COLOR or GRAY_FONT_COLOR
     header.Title:SetTextColor(color:GetRGB())
     header.Time:SetText(MPH.RapportPage.RunTime(run))
@@ -106,7 +111,16 @@ function MPH.RapportHistory.Refresh()
     frame.child:SetWidth(frame.Scroll:GetWidth())
 
     local runs = MPH.Rapport.History()
-    local y, count = 0, 0
+    local y, count, leftCount = 0, 0, 0
+    local function AddPlayer(member, indent)
+        count = count + 1
+        players[count] = players[count] or MPH.RapportPage.CreatePlayerRow(frame.child)
+        players[count].history = true
+        Place(players[count], y, indent)
+        MPH.RapportPage.FillPlayerRow(players[count], member)
+        y = y + PLAYER_HEIGHT + PLAYER_GAP
+    end
+
     for index, run in ipairs(runs) do
         headers[index] = headers[index] or CreateHeader()
         Place(headers[index], y)
@@ -114,19 +128,31 @@ function MPH.RapportHistory.Refresh()
         y = y + HEADER_HEIGHT + HEADER_GAP
 
         if expanded[run] then
-            for _, member in ipairs(MPH.Rapport.Members(run)) do
-                count = count + 1
-                players[count] = players[count] or MPH.RapportPage.CreatePlayerRow(frame.child)
-                players[count].history = true
-                Place(players[count], y, PLAYER_INDENT)
-                MPH.RapportPage.FillPlayerRow(players[count], member)
-                y = y + PLAYER_HEIGHT + PLAYER_GAP
+            for _, member in ipairs(MPH.Rapport.Members(run)) do AddPlayer(member, PLAYER_INDENT) end
+            local gone = MPH.Rapport.Left(run)
+            if #gone > 0 then
+                leftCount = leftCount + 1
+                local header = leftHeaders[leftCount] or MPH.RapportPage.CreateLeftHeader(frame.child, function (self)
+                    expandedLeft[self.run] = not expandedLeft[self.run] or nil
+                    MPH.RapportHistory.Refresh()
+                end)
+                leftHeaders[leftCount] = header
+                header.run = run
+                Place(header, y, PLAYER_INDENT)
+                MPH.RapportPage.FillLeftHeader(header, #gone, expandedLeft[run])
+                y = y + LEFT_HEADER_HEIGHT + PLAYER_GAP
+                if expandedLeft[run] then
+                    for _, member in ipairs(gone) do AddPlayer(member, PLAYER_INDENT * 2) end
+                end
             end
             y = y + HEADER_GAP
         end
     end
     for index = #runs + 1, #headers do
         headers[index]:Hide()
+    end
+    for index = leftCount + 1, #leftHeaders do
+        leftHeaders[index]:Hide()
     end
     for index = count + 1, #players do
         players[index]:Hide()

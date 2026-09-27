@@ -39,6 +39,27 @@ table.insert(MPH.onLogin, function ()
     end)
     Settings.CreateCheckbox(category, errors, L["settings.errorsdesc"])
 
+    if Settings.CreateDropdown and Settings.CreateControlTextContainer then
+        local playstyle = Settings.RegisterAddOnSetting(category, "MPH_Playstyle", "value",
+            MPH.db.playstyle, "number", L["settings.playstyle"], 2)
+        Settings.CreateDropdown(category, playstyle, function ()
+            local container = Settings.CreateControlTextContainer()
+            container:Add(0, L["settings.playstylenone"])
+            for value = 1, 4 do
+                container:Add(value, _G["GROUP_FINDER_GENERAL_PLAYSTYLE" .. value] or tostring(value))
+            end
+            return container:GetData()
+        end, L["settings.playstyledesc"])
+    end
+
+    local reqScore = Settings.RegisterAddOnSetting(category, "MPH_RequireScore", "score",
+        MPH.db.requirements, "boolean", L["settings.reqscore"], true)
+    Settings.CreateCheckbox(category, reqScore, L["settings.reqscoredesc"])
+
+    local reqItemLevel = Settings.RegisterAddOnSetting(category, "MPH_RequireItemLevel", "itemLevel",
+        MPH.db.requirements, "boolean", L["settings.reqilvl"], true)
+    Settings.CreateCheckbox(category, reqItemLevel, L["settings.reqilvldesc"])
+
     Settings.RegisterAddOnCategory(category)
     MPH.settingsCategory = category
 end)
